@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Te Rua Horizon | Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="./manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TKAU Horizon">
+<meta name="theme-color" content="#1a6b5a">
+<style>
+  :root {
+    --kura-red: #C0392B;
+    --kura-red-light: #e74c3c;
+    --kura-red-dark: #922b21;
+    --sounds-teal: #1a6b5a;
+    --sounds-teal-light: #2ecc71;
+    --sounds-teal-mid: #27ae60;
+    --whalers-brass: #C9A84C;
+    --whalers-brass-light: #f0c96a;
+    --charcoal: #2c3e50;
+    --charcoal-light: #34495e;
+    --charcoal-dark: #1a252f;
+    --cream: #f5f0e8;
+    --cream-dark: #ede5d8;
+    --white: #ffffff;
+    --text-dark: #1a1a1a;
+    --text-mid: #4a4a4a;
+    --text-light: #888;
+    --border: #ddd5c8;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--charcoal-dark);
+    position: fixed;
+    top: 0; left: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+  }
+
+  .sidebar-logo .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--whalers-brass);
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+  }
+
+  .sidebar-logo .brand-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .sidebar-logo .tkau-badge {
+    width: 40px; height: 40px;
+    background: var(--kura-red);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+    border: 2px solid var(--whalers-brass);
+  }
+
+  .sidebar-logo .tkau-badge span {
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .nav-section-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    padding: 16px 20px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    font-weight: 400;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+  .nav-item.active {
+    background: rgba(201,168,76,0.1);
+    color: var(--whalers-brass);
+    border-left-color: var(--whalers-brass);
+  }
+
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.05em;
+  }
+
+  .system-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--sounds-teal-mid);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* MAIN CONTENT */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    min-height: 100vh;
+  }
+
+  .top-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--charcoal);
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--sounds-teal);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--charcoal); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--sounds-teal);
+    border: 1.5px solid var(--sounds-teal);
+  }
+  .btn-secondary:hover { background: var(--sounds-teal); color: white; }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--kura-red);
+    border: 1.5px solid var(--kura-red);
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+  .btn-danger:hover { background: var(--kura-red); color: white; }
+
+  .btn-brass {
+    background: var(--whalers-brass);
+    color: white;
+  }
+  .btn-brass:hover { background: var(--charcoal); }
+
+  .btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .content { padding: 28px; }
+
+  /* CARDS */
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--charcoal);
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 2px;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--sounds-teal);
+  }
+
+  .stat-card.red { border-left-color: var(--kura-red); }
+  .stat-card.brass { border-left-color: var(--whalers-brass); }
+  .stat-card.charcoal { border-left-color: var(--charcoal); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+
+  .stat-value.teal { color: var(--sounds-teal); }
+  .stat-value.red { color: var(--kura-red); }
+  .stat-value.brass { color: var(--whalers-brass); }
+
+  .stat-note {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    background: var(--cream-dark);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--sounds-teal);
+    transition: width 0.5s ease;
+  }
+
+  .progress-fill.red { background: var(--kura-red); }
+  .progress-fill.brass { background: var(--whalers-brass); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge-teal { background: rgba(26,107,90,0.12); color: var(--sounds-teal); }
+  .badge-red { background: rgba(192,57,43,0.12); color: var(--kura-red); }
+  .badge-brass { background: rgba(201,168,76,0.15); color: #a07c20; }
+  .badge-grey { background: rgba(44,62,80,0.1); color: var(--charcoal); }
+
+  /* FORM ELEMENTS */
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--sounds-teal);
+  }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .form-row {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+  }
+  td {
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--cream-dark);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--cream); }
+
+  /* SECTION PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* HORIZON BRIEFING */
+  .briefing-card {
+    background: linear-gradient(135deg, var(--charcoal-dark) 0%, var(--charcoal) 100%);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(201,168,76,0.3);
+  }
+
+  .briefing-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--whalers-brass);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .briefing-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+
+  .briefing-content {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.6;
+    min-height: 60px;
+  }
+
+  /* COUNTDOWN */
+  .countdown-ring {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .countdown-days {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px;
+    font-weight: 700;
+    color: var(--sounds-teal);
+    line-height: 1;
+  }
+
+  .countdown-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+
+  /* BUDGET CHECKLIST */
+  .checklist-category {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .checklist-category.critical { border-color: rgba(192,57,43,0.3); }
+
+  .cat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    background: var(--cream);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checklist-category.critical .cat-header { background: rgba(192,57,43,0.04); }
+
+  .cat-header:hover { background: var(--cream-dark); }
+
+  .cat-title { font-size: 14px; font-weight: 600; color: var(--charcoal); flex: 1; }
+
+  .cat-stats { font-size: 11px; color: var(--text-light); text-align: right; }
+  .cat-total { font-size: 12px; color: var(--whalers-brass); font-weight: 600; }
+
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--cream-dark);
+    transition: background 0.15s;
+  }
+
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item:hover { background: var(--cream); }
+  .checklist-item.checked { background: rgba(26,107,90,0.04); }
+
+  .check-box {
+    width: 18px; height: 18px;
+    border-radius: 3px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    background: white;
+  }
+
+  .check-box.checked {
+    background: var(--sounds-teal);
+    border-color: var(--sounds-teal);
+  }
+
+  .item-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-dark);
+  }
+
+  .item-label.checked { text-decoration: line-through; color: var(--text-light); }
+
+  .item-note { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+
+  .price-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .price-input-wrap span { font-size: 11px; color: var(--text-light); }
+
+  .price-input {
+    width: 90px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    text-align: right;
+    border-color: var(--border) !important;
+    color: var(--sounds-teal) !important;
+    font-weight: 600 !important;
+  }
+
+  .price-input:focus { border-color: var(--sounds-teal) !important; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--charcoal);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* RISK MATRIX */
+  .risk-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--cream-dark); }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-severity {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .risk-severity.high { background: var(--kura-red); }
+  .risk-severity.medium { background: var(--whalers-brass); }
+  .risk-severity.low { background: var(--sounds-teal); }
+
+  /* SITE SPECS */
+  .spec-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .spec-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .spec-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    color: var(--charcoal);
+  }
+
+  .spec-type { font-size: 11px; color: var(--text-light); }
+
+  .spec-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--cream-dark);
+  }
+
+  .spec-meta-item label { font-size: 9px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.1em; }
+  .spec-meta-item span { font-size: 13px; color: var(--charcoal); font-weight: 600; }
+
+  /* NOTIFICATION BANNER */
+  .notice {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .notice.info { background: rgba(26,107,90,0.08); border: 1px solid rgba(26,107,90,0.2); color: var(--sounds-teal); }
+  .notice.warn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: #8a6800; }
+  .notice.danger { background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.2); color: var(--kura-red); }
+
+  /* DIVIDER */
+  .section-divider {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    padding: 12px 0 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* HAMBURGER */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--charcoal);
+    border-radius: 2px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page.active { animation: fadeIn 0.3s ease; }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hamburger { display: flex; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .content { padding: 16px; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
+    .overlay.open { display: block; }
+  }
+
+  .editable-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--charcoal);
+    background: transparent;
+    border: none;
+    border-bottom: 2px dashed var(--border);
+    outline: none;
+    width: 100%;
+    padding: 2px 0;
+    transition: border-color 0.2s;
+  }
+  .editable-value:focus { border-bottom-color: var(--sounds-teal); }
+
+  .inline-edit { position: relative; }
+  .edit-hint { font-size: 10px; color: var(--text-light); opacity: 0; transition: opacity 0.2s; position: absolute; top: 0; right: 0; }
+  .inline-edit:hover .edit-hint { opacity: 1; }
+
+  .delete-row { opacity: 0; transition: opacity 0.2s; }
+  tr:hover .delete-row { opacity: 1; }
+
+  .add-item-row {
+    padding: 10px 16px;
+    background: rgba(26,107,90,0.03);
+    border-top: 1px dashed rgba(26,107,90,0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--sounds-teal);
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .add-item-row:hover { background: rgba(26,107,90,0.07); }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="tkau-badge"><span>TK<br>AU</span></div>
+    <div class="brand-name">Te Rua Horizon</div>
+    <div class="brand-sub">Command Center</div>
+  </div>
+  <div class="nav-section-label">Navigation</div>
+  <div class="nav-item active" onclick="showPage('dashboard', this)">
+    <span class="nav-icon">⊞</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('ledger', this)">
+    <span class="nav-icon">⊟</span> Capital Ledger
+  </div>
+  <div class="nav-item" onclick="showPage('budget', this)">
+    <span class="nav-icon">✦</span> Budget Planner
+  </div>
+  <div class="nav-item" onclick="showPage('risk', this)">
+    <span class="nav-icon">⊛</span> Risk Matrix
+  </div>
+  <div class="nav-item" onclick="showPage('specs', this)">
+    <span class="nav-icon">⚙</span> Site Specs
+  </div>
+  <div class="nav-item" onclick="showPage('blitz', this)">
+    <span class="nav-icon">⚡</span> The Blitz
+  </div>
+  <div class="sidebar-footer">
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>All Nodes Operational</span>
+    </div>
+    <div>© 2026 Te Kura Te Au. Confidential.</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="page-title" id="pageTitle">Dashboard</div>
+    </div>
+    <div class="top-bar-actions">
+      <span style="font-size:11px;color:var(--text-light);" id="currentDate"></span>
+      <div style="width:32px;height:32px;background:var(--kura-red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">JD</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ Horizon Briefing</div>
+        <div class="briefing-sub">AI-generated session handover — Te Rua Bay Project</div>
+        <div class="briefing-content" id="briefingContent">
+          Click "Sync Briefing" to generate your session summary based on current project state.
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn btn-brass btn-sm" onclick="syncBriefing()">↻ Sync Briefing</button>
+        </div>
+      </div>
+
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Net Position</div>
+          <div class="inline-edit">
+            <input class="editable-value teal" id="netPosition" value="$0" style="font-size:24px;color:var(--sounds-teal);" />
+            <div class="edit-hint">✎ edit</div>
+          </div>
+          <div class="stat-note">↑ Update manually</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Budget Committed</div>
+          <div class="stat-value red" id="dashBudgetTotal">$0</div>
+          <div class="stat-note">From Budget Planner</div>
+        </div>
+        <div class="stat-card brass">
+          <div class="stat-label">Compliance Clock</div>
+          <div class="stat-value brass" id="jettyCountdownDash">—</div>
+          <div class="stat-note">Days to Jetty Renewal</div>
+        </div>
+        <div class="stat-card charcoal">
+          <div class="stat-label">Go-Live Target</div>
+          <div class="inline-edit">
+            <input class="editable-value" id="goLiveDate" value="TBD" style="font-size:18px;" />
+            <div class="edit-hint">✎ edit</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Ridge Line Visualizer</div>
+              <div class="card-sub">Hospitality Exclusion Zone Analysis</div>
+            </div>
+          </div>
+          <div style="background:var(--cream);border-radius:8px;padding:16px;margin-bottom:12px;">
+            <div style="font-family:'Playfair Display',serif;font-size:13px;color:var(--sounds-teal);font-weight:600;margin-bottom:12px;text-align:center;">Te Rua Bay — 49ha</div>
+            <div class="grid-3">
+              <div style="text-align:center;">
+                <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;">Total Land</div>
+                <input style="width:100%;text-align:center;font-size:18px;font-weight:700;color:var(--charcoal);border:none;border-bottom:2px dashed var(--border);background:transparent;outline:none;" id="totalLand" value="49 ha" />
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;">Exclusion Zone</div>
+                <input style="width:100%;text-align:center;font-size:18px;font-weight:700;color:var(--kura-red);border:none;border-bottom:2px dashed var(--border);background:transparent;outline:none;" id="exclusionZone" value="TBC" />
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;">Value Impact</div>
+                <input style="width:100%;text-align:center;font-size:18px;font-weight:700;color:var(--whalers-brass);border:none;border-bottom:2px dashed var(--border);background:transparent;outline:none;" id="valueImpact" value="TBC" />
+              </div>
+            </div>
+          </div>
+          <div class="notice warn">⚠ Value loss pending forestry consultant quote based on MPI carbon tables for the ridge line carve-out.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Jetty Consent Countdown</div>
+              <div class="card-sub">Expiry: 28 January 2031</div>
+            </div>
+            <span class="badge badge-teal">Active</span>
+          </div>
+          <div class="countdown-ring">
+            <div class="countdown-days" id="jettyCountdown">—</div>
+            <div class="countdown-label">Days Remaining</div>
+            <div style="margin-top:12px;font-size:11px;color:var(--text-light);text-align:center;">
+              Environmental impact review required from Q1 2030
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPITAL LEDGER -->
+    <div class="page" id="page-ledger">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ Capital Ledger</div>
+        <div class="briefing-sub">Strategic tracking of core asset value, tax efficiency, and control status</div>
+      </div>
+
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Total Asset Value</div>
+          <div class="inline-edit">
+            <input class="editable-value teal" id="totalAssetValue" value="$0" style="font-size:22px;color:var(--sounds-teal);" />
+          </div>
+        </div>
+        <div class="stat-card brass">
+          <div class="stat-label">GST Refundable</div>
+          <div class="inline-edit">
+            <input class="editable-value" id="gstRefund" value="$0" style="font-size:22px;color:var(--whalers-brass);" />
+          </div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Acquisition Cost</div>
+          <div class="inline-edit">
+            <input class="editable-value" id="acquisitionCost" value="$0" style="font-size:22px;color:var(--kura-red);" />
+          </div>
+        </div>
+        <div class="stat-card charcoal">
+          <div class="stat-label">NZD/AUD Rate</div>
+          <div class="inline-edit">
+            <input class="editable-value" id="fxRate" value="1.08" style="font-size:22px;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Transaction Summary</div>
+            <div class="card-sub">Capital movement and control protocols across the horizon portfolio</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addTransactionModal')">+ Add Transaction</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="transactionTable">
+            <thead>
+              <tr>
+                <th>Financial Item</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="transactionBody">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 0 0;display:flex;justify-content:flex-end;gap:20px;border-top:2px solid var(--border);margin-top:8px;">
+          <span style="font-size:12px;color:var(--text-light);">Net Position</span>
+          <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--sounds-teal);" id="ledgerNet">$0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Capital Allocation</div>
+          <div class="card-sub">Investment vs Return Profile</div>
+        </div>
+        <div id="allocationBars">
+          <!-- populated by JS -->
+        </div>
+        <div style="padding-top:16px;border-top:2px solid var(--border);margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:600;color:var(--charcoal);">Target Net Surplus</span>
+          <div class="inline-edit">
+            <input style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--sounds-teal);border:none;border-bottom:2px dashed var(--border);background:transparent;outline:none;text-align:right;width:180px;" id="targetSurplus" value="$0" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUDGET PLANNER -->
+    <div class="page" id="page-budget">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ Budget Planner</div>
+        <div class="briefing-sub">Item-level stress test — every line item confirmed and costed</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Items Confirmed</div>
+          <div class="stat-value teal" id="budgetCheckedCount">0 / 0</div>
+          <div class="progress-bar"><div class="progress-fill" id="budgetProgress" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card brass">
+          <div class="stat-label">Total Budgeted (NZD)</div>
+          <div class="stat-value brass" id="budgetGrandTotal">$0</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Uncosted Items</div>
+          <div class="stat-value red" id="budgetUncosted">0</div>
+          <div class="stat-note">Items with no price entered</div>
+        </div>
+      </div>
+
+      <div id="budgetCategories">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- RISK MATRIX -->
+    <div class="page" id="page-risk">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ Risk Matrix</div>
+        <div class="briefing-sub">Fault-based liability enforcement and threat mitigation</div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="stat-card red">
+          <div class="stat-label">High Risk Items</div>
+          <div class="stat-value red" id="highRiskCount">0</div>
+        </div>
+        <div class="stat-card brass">
+          <div class="stat-label">Medium Risk Items</div>
+          <div class="stat-value brass" id="medRiskCount">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Active Liabilities</div>
+            <div class="card-sub">Managed under the Fault-Based Liability model</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addRiskModal')">+ Add Risk</button>
+        </div>
+        <div id="riskList"><!-- populated by JS --></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Fault-Based Enforcer</div>
+          <div class="card-sub">Upload contracts to check for Act of God reversions</div>
+        </div>
+        <div style="border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;background:var(--cream);">
+          <div style="font-size:28px;margin-bottom:8px;">↑</div>
+          <div style="font-size:13px;color:var(--text-mid);margin-bottom:6px;font-weight:600;">Drop document or click to upload</div>
+          <div style="font-size:11px;color:var(--text-light);margin-bottom:12px;">PDF, DOCX, or Image (Max 10MB)</div>
+          <button class="btn btn-secondary btn-sm">Select File</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SITE SPECS -->
+    <div class="page" id="page-specs">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ Site Specifications</div>
+        <div class="briefing-sub">Technical registry of critical infrastructure and consents</div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="background:rgba(26,107,90,0.1);border:1px solid rgba(26,107,90,0.3);border-radius:8px;padding:10px 16px;">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--sounds-teal);margin-bottom:2px;">Compliance Clock</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--sounds-teal);font-weight:700;" id="jettyCountdownSpecs">—</div>
+          <div style="font-size:11px;color:var(--text-light);">Days to Jetty Renewal</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addSpecModal')">+ Add Spec</button>
+      </div>
+
+      <div id="specsList"><!-- populated by JS --></div>
+    </div>
+
+    <!-- THE BLITZ -->
+    <div class="page" id="page-blitz">
+      <div class="briefing-card">
+        <div class="briefing-title">✦ The Blitz: Biarra Sprint</div>
+        <div class="briefing-sub">Aggressive renovation cleanup — Biarra liquidation tasks</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="stat-card red">
+          <div class="stat-label">Hard Cap</div>
+          <div class="inline-edit">
+            <input class="editable-value" id="blitzHardCap" value="$0" style="font-size:22px;color:var(--kura-red);" />
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Spent to Date</div>
+          <div class="stat-value teal" id="blitzSpent">$0</div>
+          <div class="progress-bar"><div class="progress-fill red" id="blitzProgress" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card brass">
+          <div class="stat-label">Active Balance</div>
+          <div class="stat-value brass" id="blitzBalance">$0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Sprint Roadmap</div>
+            <div class="card-sub">Biarra liquidation task list</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="sortBlitzByPriority()">↕ Priority Sort</button>
+            <button class="btn btn-brass btn-sm" onclick="openModal('addBlitzModal')">+ Add Task</button>
+          </div>
+        </div>
+        <div class="notice warn">⚑ Workflow Note: Internal doors prioritised for rain days. Fence completion depends on clear weather windows.</div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Task</th>
+                <th>Priority</th>
+                <th>Est. Cost</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="blitzBody"><!-- populated by JS --></tbody>
+          </table>
+        </div>
+        <div class="add-item-row" onclick="openModal('addBlitzModal')">+ Add Blitz Task</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Listing Target</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="flex:1;">
+            <label>Target Date</label>
+            <input type="date" id="listingTarget" />
+          </div>
+          <div style="flex:2;">
+            <label>Notes</label>
+            <input type="text" id="listingNotes" placeholder="e.g. Photos Thursday, live Friday" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- MODALS -->
+
+<!-- Add Transaction -->
+<div class="modal-overlay" id="addTransactionModal">
+  <div class="modal">
+    <div class="modal-title">Add Transaction</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Financial Item</label><input type="text" id="txName" placeholder="e.g. Te Rua Bay Purchase" /></div>
+      <div><label>Category</label>
+        <select id="txCategory">
+          <option>Acquisition</option><option>Tax</option><option>Operating</option>
+          <option>Liquidation</option><option>Finance</option><option>Business Ops</option>
+          <option>Certification</option><option>Portable Asset</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Amount (NZD)</label><input type="number" id="txAmount" placeholder="0.00" /></div>
+      <div><label>Direction</label>
+        <select id="txDirection"><option value="-1">Outgoing (−)</option><option value="1">Incoming (+)</option></select>
+      </div>
+    </div>
+    <div><label>Notes</label><input type="text" id="txNotes" placeholder="Optional notes" /></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('addTransactionModal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addTransaction()">Add Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Risk -->
+<div class="modal-overlay" id="addRiskModal">
+  <div class="modal">
+    <div class="modal-title">Add Risk Item</div>
+    <div class="form-row"><div><label>Liability Type</label><input type="text" id="riskType" placeholder="e.g. Environmental, Structural..." /></div></div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Owner</label><input type="text" id="riskOwner" placeholder="e.g. Site, Jason..." /></div>
+      <div><label>Severity</label>
+        <select id="riskSeverity"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Trigger Event</label><input type="text" id="riskTrigger" placeholder="e.g. Non-compliance..." /></div>
+      <div><label>Consent Expiry</label><input type="date" id="riskExpiry" /></div>
+    </div>
+    <div><label>Compliance Lead</label><input type="text" id="riskLead" placeholder="Person responsible" /></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('addRiskModal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addRisk()">Add Risk</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Spec -->
+<div class="modal-overlay" id="addSpecModal">
+  <div class="modal">
+    <div class="modal-title">Add Site Spec</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Spec Name</label><input type="text" id="specName" placeholder="e.g. Main Jetty - Te Rua" /></div>
+      <div><label>Type</label><input type="text" id="specType" placeholder="e.g. Marine Consent" /></div>
+    </div>
+    <div><label>Description</label><textarea id="specDesc" rows="2" placeholder="Brief description..."></textarea></div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Expiry Date</label><input type="date" id="specExpiry" /></div>
+      <div><label>Maintenance Schedule</label><input type="text" id="specMaint" placeholder="e.g. Every 24 Months" /></div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Status</label>
+        <select id="specStatus"><option>Operational</option><option>Verified</option><option>Active</option><option>Pending</option><option>Expired</option></select>
+      </div>
+      <div><label>Icon (emoji)</label><input type="text" id="specIcon" placeholder="⚓" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('addSpecModal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addSpec()">Add Spec</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Blitz Task -->
+<div class="modal-overlay" id="addBlitzModal">
+  <div class="modal">
+    <div class="modal-title">Add Blitz Task</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Week</label><input type="text" id="blitzWeek" placeholder="e.g. Wk 1" /></div>
+      <div><label>Priority</label>
+        <select id="blitzPriority"><option value="1">High</option><option value="2">Medium</option><option value="3">Low</option></select>
+      </div>
+    </div>
+    <div><label>Task Description</label><input type="text" id="blitzTask" placeholder="Task description..." /></div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div><label>Estimated Cost ($)</label><input type="number" id="blitzCost" placeholder="0" /></div>
+      <div><label>Status</label>
+        <select id="blitzStatus"><option>Pending</option><option>In Progress</option><option>Complete</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('addBlitzModal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addBlitzTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Budget Item -->
+<div class="modal-overlay" id="addBudgetItemModal">
+  <div class="modal">
+    <div class="modal-title">Add Budget Item</div>
+    <div class="form-row"><div><label>Category</label><div id="addItemCategoryName" style="font-size:14px;color:var(--sounds-teal);font-weight:600;padding:6px 0;"></div></div></div>
+    <div><label>Item Name</label><input type="text" id="newItemLabel" placeholder="e.g. Adult PFDs (commercial rated)" /></div>
+    <div style="margin-top:10px;"><label>Note / Compliance Info</label><input type="text" id="newItemNote" placeholder="Optional note..." /></div>
+    <div style="margin-top:10px;"><label>Estimated Cost (NZD)</label><input type="number" id="newItemPrice" placeholder="0" /></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('addBudgetItemModal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addBudgetItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+let state = {
+  transactions: [],
+  risks: [],
+  specs: [
+    { id: 1, name: "Main Jetty — Te Rua", type: "Marine Consent", desc: "Primary docking structure for site logistics and tourism access.", expiry: "2031-01-28", maint: "Every 24 Months", status: "Operational", icon: "⚓", note: "2031 Jetty Renewal requires environmental impact review starting Q1 2030." },
+    { id: 2, name: "Coastal Retaining Wall", type: "Structural Permit", desc: "Critical infrastructure for landslide prevention near the ridge line.", expiry: "2045-06-12", maint: "Post-Storm Event", status: "Verified", icon: "🛡" },
+    { id: 3, name: "Solar Array V1", type: "Resource Consent", desc: "Off-grid power generation for Te Rua Bay base camp.", expiry: "2034-11-20", maint: "Quarterly Cleaning", status: "Active", icon: "⚙" }
+  ],
+  blitzTasks: [],
+  budgetChecked: {},
+  budgetPrices: {},
+  addItemTargetCat: null
+};
+
+// ========== BUDGET CATEGORIES ==========
+const budgetCategories = [
+  { id: "water-safety", label: "Water Safety & Maritime", icon: "⚓", critical: true, items: [
+    { id: "pfd-adult", label: "Adult PFDs (Type 1 or 2 — commercial rated)", note: "Maritime NZ requires commercial-rated PFDs for hosted water activity" },
+    { id: "pfd-child", label: "Child PFDs (various sizes)", note: "Must cover full guest age range" },
+    { id: "pfd-storage", label: "PFD storage & drying rack", note: "Weatherproof, accessible at jetty" },
+    { id: "throwline", label: "Throw lines / rescue ropes", note: "Minimum 2 at jetty" },
+    { id: "lifebuoy", label: "Lifebuoy ring(s) with line", note: "Fixed at jetty" },
+    { id: "flares", label: "Flare kit (current dated)", note: "Check Maritime NZ requirements for vessel type" },
+    { id: "epirb", label: "EPIRB or PLB (registered)", note: "Essential for remote water location" },
+    { id: "vhf", label: "VHF marine radio", note: "Channel 16 monitoring; check coverage in Tory Channel" },
+    { id: "anchor", label: "Anchor & chain for tender/vessel", note: "" },
+    { id: "nav-lights", label: "Navigation lights for vessel(s)", note: "" },
+    { id: "bilge-pump", label: "Bilge pump(s)", note: "" },
+    { id: "first-aid-marine", label: "Marine-specific first aid kit", note: "Separate from land first aid" },
+    { id: "fire-ext-vessel", label: "Fire extinguisher(s) for vessel", note: "" },
+    { id: "wetsuit", label: "Wetsuits / drysuits for emergency use", note: "Tory Channel water is cold" },
+    { id: "jetty-lighting", label: "Jetty safety lighting", note: "Night access for guests" },
+    { id: "jetty-cleats", label: "Jetty cleats, fenders, mooring lines", note: "" },
+    { id: "tide-chart", label: "Tidal chart / signage at jetty", note: "" },
+  ]},
+  { id: "fire-safety", label: "Fire Safety & Emergency", icon: "🔥", critical: true, items: [
+    { id: "fire-ext-site", label: "Fire extinguishers — hospitality zone", note: "Type, qty, location plan required" },
+    { id: "fire-ext-accomm", label: "Fire extinguishers — each accommodation unit", note: "" },
+    { id: "smoke-alarms", label: "Smoke alarms — all accommodation units", note: "NZ Building Code compliant, interconnected" },
+    { id: "co-alarms", label: "CO alarms (if gas appliances)", note: "" },
+    { id: "fire-blanket", label: "Fire blankets — kitchen/cooking areas", note: "" },
+    { id: "evacuation-plan", label: "Evacuation plan & signage", note: "Required for hosted accommodation" },
+    { id: "muster-point", label: "Muster point markers", note: "" },
+    { id: "emergency-contacts", label: "Emergency contact board / signage", note: "Include nearest hospital, coastguard, police" },
+    { id: "sat-phone", label: "Satellite phone or Starlink comms backup", note: "Cell coverage in Tory Channel is limited" },
+    { id: "first-aid-land", label: "Comprehensive land first aid kit", note: "Remote location — must be well stocked" },
+    { id: "defibrillator", label: "AED defibrillator", note: "Strongly recommended for remote hosted accommodation" },
+    { id: "first-aid-trained", label: "First aid training (Jason & Caroline)", note: "Budget for course + recertification" },
+  ]},
+  { id: "accommodation", label: "Accommodation & Glamping Structures", icon: "⛺", critical: false, items: [
+    { id: "glamping-tents", label: "Glamping tent structures", note: "Platform-mounted, weatherproof for Marlborough conditions" },
+    { id: "tent-platforms", label: "Tent platforms / decking", note: "Engineering sign-off may be required" },
+    { id: "bedding", label: "Bedding, linen, pillows per unit", note: "Commercial grade, spare sets for turnaround" },
+    { id: "towels", label: "Towels — full sets per unit + spares", note: "" },
+    { id: "furniture-beds", label: "Bed frames per unit", note: "" },
+    { id: "furniture-lounge", label: "Lounge/seating furniture per unit", note: "" },
+    { id: "lighting-accomm", label: "Lighting — each unit (12v/solar)", note: "" },
+    { id: "heating", label: "Heating per unit", note: "Marlborough winters — critical for year-round operation" },
+    { id: "rugs-mats", label: "Rugs, mats, décor per unit", note: "" },
+    { id: "welcome-kit", label: "Welcome kit / guest information folder", note: "" },
+    { id: "safe", label: "In-unit safe or lockbox", note: "" },
+    { id: "blackout", label: "Blackout blinds or curtains", note: "" },
+    { id: "insect-screens", label: "Insect screening", note: "" },
+  ]},
+  { id: "bathroom", label: "Bathroom & Guest Amenities", icon: "🚿", critical: false, items: [
+    { id: "bathrooms", label: "Bathroom structures / wet rooms", note: "" },
+    { id: "hot-water", label: "Hot water system(s)", note: "Solar/gas/electric — specify per unit" },
+    { id: "toilets", label: "Toilets — composting or connected", note: "Wastewater consent implications" },
+    { id: "vanities", label: "Vanities, basins, taps", note: "" },
+    { id: "shower-fittings", label: "Shower fittings", note: "" },
+    { id: "toiletries", label: "Guest toiletry kits (ongoing supply)", note: "Budget as operating cost" },
+    { id: "hair-dryer", label: "Hair dryers per unit", note: "" },
+    { id: "waste-bins", label: "Waste bins with liners", note: "" },
+  ]},
+  { id: "kitchen", label: "Kitchen, Dining & Guest Catering", icon: "🍽", critical: false, items: [
+    { id: "kitchen-structure", label: "Kitchen / prep area structure", note: "" },
+    { id: "fridge", label: "Refrigeration (commercial grade)", note: "" },
+    { id: "cooking-appliances", label: "Cooking appliances (BBQ, camp stove, oven)", note: "" },
+    { id: "cookware", label: "Cookware, pots, pans", note: "" },
+    { id: "crockery", label: "Crockery, cutlery, glassware", note: "Full sets x guest capacity + spares" },
+    { id: "coffee", label: "Coffee/tea setup", note: "" },
+    { id: "dining-furniture", label: "Dining table(s) and chairs", note: "Indoor + outdoor" },
+    { id: "gas-supply", label: "Gas bottles / supply system", note: "Ongoing supply logistics for remote site" },
+    { id: "water-supply", label: "Potable water system", note: "Tank, filtration, UV treatment" },
+    { id: "water-testing", label: "Water quality testing kit", note: "Rainwater catchment requires testing" },
+  ]},
+  { id: "fishing", label: "Fishing Operations", icon: "🎣", critical: false, items: [
+    { id: "fishing-rods", label: "Fishing rods — guest use", note: "" },
+    { id: "reels", label: "Reels, lines, terminal tackle", note: "" },
+    { id: "lures-bait", label: "Lures, bait supply, hooks (ongoing)", note: "Budget as operating cost" },
+    { id: "rod-storage", label: "Rod rack / storage at jetty", note: "" },
+    { id: "fish-cleaning", label: "Fish cleaning table & water supply", note: "" },
+    { id: "icebox-fish", label: "Chilly bins / ice supply for catch", note: "" },
+    { id: "landing-net", label: "Landing nets", note: "" },
+    { id: "bait-tank", label: "Bait tank / aerator", note: "" },
+    { id: "fishing-license", label: "Fishing licensing / compliance signage", note: "Check NZ Sport Fishing rules for hosted guiding" },
+    { id: "vessel", label: "Fishing vessel / tender", note: "Type, size, capacity — Maritime NZ survey requirements" },
+    { id: "outboard", label: "Outboard motor + spare", note: "" },
+    { id: "fuel-storage", label: "Fuel storage (compliant)", note: "Remote site — adequate reserves" },
+  ]},
+  { id: "power", label: "Power, Water & Utilities", icon: "⚡", critical: true, items: [
+    { id: "solar-panels", label: "Solar panels (qty, kW capacity)", note: "" },
+    { id: "battery-storage", label: "Battery storage system", note: "Size for full guest load + safety margin" },
+    { id: "inverter", label: "Inverter / charge controller", note: "" },
+    { id: "generator", label: "Backup generator", note: "Essential for remote site" },
+    { id: "electrical-wiring", label: "Site electrical wiring & switchboards", note: "Licensed electrician required in NZ" },
+    { id: "rainwater-tank", label: "Rainwater tank(s) capacity", note: "" },
+    { id: "pump-system", label: "Pump system & pressure vessel", note: "" },
+    { id: "filtration", label: "Water filtration & UV treatment", note: "" },
+    { id: "wastewater", label: "Wastewater / septic system", note: "Consent-specific requirements" },
+    { id: "internet", label: "Starlink or satellite internet", note: "Guest expectation + operational necessity" },
+  ]},
+  { id: "vehicles", label: "Vehicles & Site Access", icon: "🚜", critical: false, items: [
+    { id: "utv", label: "Can-Am 6-seat UTV", note: "Guest transport on-site" },
+    { id: "utv-accessories", label: "UTV accessories (roof, doors, lights)", note: "" },
+    { id: "tractor", label: "John Deere 2025R sub-compact tractor", note: "" },
+    { id: "tractor-implements", label: "Tractor implements (bucket, slasher, forks)", note: "" },
+    { id: "quad-existing", label: "Existing quad bike — service & compliance", note: "Already on site" },
+    { id: "track-maintenance", label: "Internal track maintenance (gravel, grading)", note: "Ongoing annual budget" },
+    { id: "jetty-vehicle-access", label: "Vehicle access path to jetty", note: "" },
+    { id: "trailer-boat", label: "Boat trailer", note: "" },
+  ]},
+  { id: "consents", label: "Consents, Compliance & Insurance", icon: "📋", critical: true, items: [
+    { id: "resource-consent", label: "Resource consent application fees", note: "" },
+    { id: "building-consent", label: "Building consent fees", note: "" },
+    { id: "engineering-reports", label: "Engineering reports (geotechnical, structural)", note: "" },
+    { id: "legal-nz", label: "NZ legal fees (Tom Dobbs / Gascoigne Wicks)", note: "" },
+    { id: "accountant", label: "NZ accountant / tax setup", note: "" },
+    { id: "insurance-property", label: "Property insurance", note: "Follow up Abbey at Aon Gallagher Blenheim" },
+    { id: "insurance-public-liability", label: "Public liability insurance (commercial hosted)", note: "Critical — guest-facing operation" },
+    { id: "insurance-marine", label: "Marine insurance (vessel, jetty)", note: "" },
+    { id: "insurance-vehicle", label: "Vehicle insurance (UTV, tractor)", note: "" },
+    { id: "health-safety-plan", label: "Health & Safety plan (WorkSafe NZ compliant)", note: "" },
+    { id: "guest-waiver", label: "Guest liability waiver (legal reviewed)", note: "" },
+    { id: "food-registration", label: "Food premises registration (if serving meals)", note: "MDC requirement" },
+    { id: "maritime-survey", label: "Maritime NZ vessel survey / operator cert", note: "" },
+  ]},
+  { id: "site-infra", label: "Site Infrastructure & Build", icon: "🏗", critical: false, items: [
+    { id: "foundations", label: "Foundations for structures", note: "" },
+    { id: "access-road", label: "Main access road upgrade / seal", note: "" },
+    { id: "retaining", label: "Retaining walls / earthworks", note: "" },
+    { id: "fencing", label: "Fencing — boundary, safety, animal", note: "" },
+    { id: "landscaping", label: "Landscaping / revegetation", note: "" },
+    { id: "outdoor-lighting", label: "Outdoor/path lighting", note: "" },
+    { id: "waste-management", label: "Waste management system", note: "Remote — barge out logistics" },
+    { id: "shipping-container", label: "Existing shipping container — fit-out", note: "Already on site" },
+    { id: "storage-shed", label: "Equipment storage shed", note: "" },
+    { id: "laundry", label: "Laundry facilities (commercial washer/dryer)", note: "Guest linen turnaround" },
+  ]},
+  { id: "brand", label: "Brand, Marketing & Guest Experience", icon: "🎨", critical: false, items: [
+    { id: "website", label: "TKAU website (build + hosting)", note: "" },
+    { id: "booking-system", label: "Online booking system / channel manager", note: "" },
+    { id: "photography", label: "Professional photography (launch)", note: "" },
+    { id: "merchandise", label: "Branded merchandise", note: "" },
+    { id: "signage-brand", label: "Branded signage — entry, site, jetty", note: "" },
+    { id: "welcome-gifts", label: "Guest welcome gifts / packs", note: "" },
+    { id: "uniforms", label: "Staff/host uniforms", note: "" },
+    { id: "guest-experiences", label: "Additional experience props (kayaks, paddleboards)", note: "" },
+  ]},
+  { id: "contingency", label: "Contingency & Holding Costs", icon: "💰", critical: true, items: [
+    { id: "contingency-build", label: "Build contingency (min 15–20% of hard costs)", note: "Remote site access inflates all costs" },
+    { id: "holding-costs", label: "Holding costs (rates, insurance, loan) pre-revenue", note: "" },
+    { id: "ferry-barge", label: "Barge / water taxi costs during build phase", note: "All materials arrive by water" },
+    { id: "accommodation-build", label: "Jason & Caroline accommodation during build phase", note: "" },
+    { id: "travel-nz", label: "NZ travel costs (flights, ferry, car hire)", note: "" },
+    { id: "revenue-lag", label: "Revenue lag buffer (6–12 months operating costs)", note: "" },
+  ]}
+];
+
+// ========== NAVIGATION ==========
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  const titles = { dashboard:'Dashboard', ledger:'Capital Ledger', budget:'Budget Planner', risk:'Risk Matrix', specs:'Site Specifications', blitz:'The Blitz' };
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  if (window.innerWidth <= 768) closeSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ========== MODAL ==========
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ========== DATE ==========
+function setDate() {
+  const d = new Date();
+  document.getElementById('currentDate').textContent = d.toLocaleDateString('en-NZ', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+}
+
+function getJettyDays() {
+  const expiry = new Date('2031-01-28');
+  const today = new Date();
+  return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+}
+
+function updateCountdowns() {
+  const days = getJettyDays();
+  ['jettyCountdown','jettyCountdownDash','jettyCountdownSpecs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = days.toLocaleString();
+  });
+}
+
+// ========== BRIEFING ==========
+function syncBriefing() {
+  const el = document.getElementById('briefingContent');
+  el.textContent = 'Generating briefing...';
+  const totalBudget = getBudgetTotal();
+  const checkedItems = Object.values(state.budgetChecked).filter(Boolean).length;
+  const totalItems = budgetCategories.reduce((a,c) => a + c.items.length, 0);
+  const days = getJettyDays();
+  const txCount = state.transactions.length;
+  el.textContent = `Session Summary — Te Rua Horizon. Jetty consent expires in ${days.toLocaleString()} days (28 Jan 2031). Budget Planner: ${checkedItems} of ${totalItems} items confirmed, NZD ${totalBudget.toLocaleString()} committed. ${txCount} transaction(s) recorded in Capital Ledger. QLD settlement target: 11 June 2026. NZ conditions deadline: 22 May 2026. Site visit planned early May.`;
+}
+
+// ========== TRANSACTIONS ==========
+function renderTransactions() {
+  const tbody = document.getElementById('transactionBody');
+  tbody.innerHTML = '';
+  let net = 0;
+  state.transactions.forEach((tx, i) => {
+    const amt = tx.amount * tx.direction;
+    net += amt;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><strong>${tx.name}</strong></td>
+      <td><span class="badge badge-grey">${tx.category}</span></td>
+      <td style="font-weight:600;color:${amt >= 0 ? 'var(--sounds-teal)' : 'var(--kura-red)'};">${amt >= 0 ? '+' : ''}$${Math.abs(amt).toLocaleString()}</td>
+      <td style="color:var(--text-light);font-size:12px;">${tx.notes || '—'}</td>
+      <td><button class="btn btn-danger delete-row" onclick="deleteTransaction(${i})">✕</button></td>`;
+    tbody.appendChild(row);
+  });
+  document.getElementById('ledgerNet').textContent = (net >= 0 ? '+' : '') + '$' + Math.abs(net).toLocaleString();
+  document.getElementById('ledgerNet').style.color = net >= 0 ? 'var(--sounds-teal)' : 'var(--kura-red)';
+  renderAllocationBars();
+}
+
+function addTransaction() {
+  const name = document.getElementById('txName').value.trim();
+  if (!name) return;
+  state.transactions.push({
+    name,
+    category: document.getElementById('txCategory').value,
+    amount: parseFloat(document.getElementById('txAmount').value) || 0,
+    direction: parseInt(document.getElementById('txDirection').value),
+    notes: document.getElementById('txNotes').value
+  });
+  ['txName','txAmount','txNotes'].forEach(id => document.getElementById(id).value = '');
+  closeModal('addTransactionModal');
+  renderTransactions();
+}
+
+function deleteTransaction(i) {
+  state.transactions.splice(i, 1);
+  renderTransactions();
+}
+
+function renderAllocationBars() {
+  const container = document.getElementById('allocationBars');
+  const categories = ['Acquisition','Tax','Operating','Liquidation','Finance','Business Ops'];
+  const totals = {};
+  state.transactions.forEach(tx => {
+    const amt = tx.amount * tx.direction;
+    if (!totals[tx.category]) totals[tx.category] = 0;
+    totals[tx.category] += amt;
+  });
+  const max = Math.max(...Object.values(totals).map(Math.abs), 1);
+  container.innerHTML = categories.map(cat => {
+    const val = totals[cat] || 0;
+    const pct = Math.min(Math.abs(val) / max * 100, 100);
+    if (val === 0) return '';
+    return `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+        <span style="font-weight:600;color:var(--charcoal);">${cat}</span>
+        <span style="color:${val >= 0 ? 'var(--sounds-teal)' : 'var(--kura-red)'};">${val >= 0 ? '+' : ''}$${Math.abs(val).toLocaleString()}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill ${val < 0 ? 'red' : ''}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ========== BUDGET ==========
+function getBudgetTotal() {
+  let total = 0;
+  budgetCategories.forEach(cat => {
+    cat.items.forEach(item => {
+      const p = parseFloat(state.budgetPrices[item.id]);
+      if (!isNaN(p)) total += p;
+    });
+  });
+  return total;
+}
+
+function renderBudget() {
+  const container = document.getElementById('budgetCategories');
+  container.innerHTML = '';
+  let totalChecked = 0, totalItems = 0, totalPrice = 0, uncosted = 0;
+
+  budgetCategories.forEach(cat => {
+    totalItems += cat.items.length;
+    const catChecked = cat.items.filter(i => state.budgetChecked[i.id]).length;
+    totalChecked += catChecked;
+    const catTotal = cat.items.reduce((s, i) => s + (parseFloat(state.budgetPrices[i.id]) || 0), 0);
+    totalPrice += catTotal;
+    uncosted += cat.items.filter(i => !(parseFloat(state.budgetPrices[i.id]) > 0)).length;
+
+    const div = document.createElement('div');
+    div.className = 'checklist-category' + (cat.critical ? ' critical' : '');
+    div.id = 'cat-' + cat.id;
+
+    const isOpen = cat.critical;
+
+    div.innerHTML = `
+      <div class="cat-header" onclick="toggleCat('${cat.id}')">
+        <span style="font-size:16px;">${cat.icon}</span>
+        <div class="cat-title">${cat.label} ${cat.critical ? '<span style="font-size:9px;color:var(--kura-red);border:1px solid var(--kura-red);padding:1px 5px;border-radius:2px;letter-spacing:0.1em;text-transform:uppercase;">Critical</span>' : ''}</div>
+        <div class="cat-stats">
+          <div>${catChecked}/${cat.items.length}</div>
+          ${catTotal > 0 ? `<div class="cat-total">$${catTotal.toLocaleString()}</div>` : ''}
+        </div>
+        <span style="color:var(--text-light);font-size:11px;margin-left:8px;" id="catArrow-${cat.id}">${isOpen ? '▲' : '▼'}</span>
+      </div>
+      <div id="catItems-${cat.id}" style="display:${isOpen ? 'block' : 'none'}">
+        ${cat.items.map(item => `
+          <div class="checklist-item ${state.budgetChecked[item.id] ? 'checked' : ''}" id="item-${item.id}">
+            <div class="check-box ${state.budgetChecked[item.id] ? 'checked' : ''}" onclick="toggleCheck('${item.id}', '${cat.id}')">
+              ${state.budgetChecked[item.id] ? '<span style="color:white;font-size:11px;">✓</span>' : ''}
+            </div>
+            <div style="flex:1;cursor:pointer;" onclick="toggleCheck('${item.id}', '${cat.id}')">
+              <div class="item-label ${state.budgetChecked[item.id] ? 'checked' : ''}">${item.label}</div>
+              ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+            </div>
+            <div class="price-input-wrap">
+              <span>$</span>
+              <input type="number" class="price-input" placeholder="0" value="${state.budgetPrices[item.id] || ''}" oninput="setPrice('${item.id}', this.value)" />
+            </div>
+          </div>`).join('')}
+        <div class="add-item-row" onclick="openAddBudgetItem('${cat.id}')">+ Add Item to ${cat.label}</div>
+      </div>`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('budgetCheckedCount').textContent = `${totalChecked} / ${totalItems}`;
+  document.getElementById('budgetGrandTotal').textContent = '$' + totalPrice.toLocaleString();
+  document.getElementById('budgetUncosted').textContent = uncosted;
+  document.getElementById('budgetProgress').style.width = (totalChecked / totalItems * 100) + '%';
+  document.getElementById('dashBudgetTotal').textContent = '$' + totalPrice.toLocaleString();
+}
+
+function toggleCat(id) {
+  const items = document.getElementById('catItems-' + id);
+  const arrow = document.getElementById('catArrow-' + id);
+  const open = items.style.display !== 'none';
+  items.style.display = open ? 'none' : 'block';
+  arrow.textContent = open ? '▼' : '▲';
+}
+
+function toggleCheck(itemId, catId) {
+  state.budgetChecked[itemId] = !state.budgetChecked[itemId];
+  renderBudget();
+}
+
+function setPrice(itemId, val) {
+  state.budgetPrices[itemId] = val;
+  // update totals without full re-render
+  const totalPrice = getBudgetTotal();
+  document.getElementById('budgetGrandTotal').textContent = '$' + totalPrice.toLocaleString();
+  document.getElementById('dashBudgetTotal').textContent = '$' + totalPrice.toLocaleString();
+  const uncosted = budgetCategories.reduce((s, cat) => s + cat.items.filter(i => !(parseFloat(state.budgetPrices[i.id]) > 0)).length, 0);
+  document.getElementById('budgetUncosted').textContent = uncosted;
+}
+
+function openAddBudgetItem(catId) {
+  state.addItemTargetCat = catId;
+  const cat = budgetCategories.find(c => c.id === catId);
+  document.getElementById('addItemCategoryName').textContent = cat ? cat.label : catId;
+  document.getElementById('newItemLabel').value = '';
+  document.getElementById('newItemNote').value = '';
+  document.getElementById('newItemPrice').value = '';
+  openModal('addBudgetItemModal');
+}
+
+function addBudgetItem() {
+  const label = document.getElementById('newItemLabel').value.trim();
+  if (!label) return;
+  const catId = state.addItemTargetCat;
+  const cat = budgetCategories.find(c => c.id === catId);
+  if (!cat) return;
+  const id = catId + '-custom-' + Date.now();
+  cat.items.push({ id, label, note: document.getElementById('newItemNote').value });
+  const price = document.getElementById('newItemPrice').value;
+  if (price) state.budgetPrices[id] = price;
+  closeModal('addBudgetItemModal');
+  renderBudget();
+}
+
+// ========== RISK ==========
+function renderRisks() {
+  const container = document.getElementById('riskList');
+  container.innerHTML = '';
+  let high = 0, med = 0;
+  state.risks.forEach((r, i) => {
+    if (r.severity === 'high') high++;
+    if (r.severity === 'medium') med++;
+    const div = document.createElement('div');
+    div.className = 'risk-row';
+    div.innerHTML = `
+      <div class="risk-severity ${r.severity}"></div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--charcoal);">${r.type}</div>
+        <div style="font-size:11px;color:var(--text-light);">Owner: ${r.owner} — Trigger: ${r.trigger}</div>
+        ${r.expiry ? `<div style="font-size:11px;color:var(--text-light);">Expiry: ${r.expiry}</div>` : ''}
+      </div>
+      <span class="badge badge-${r.severity === 'high' ? 'red' : r.severity === 'medium' ? 'brass' : 'teal'}">${r.severity}</span>
+      <button class="btn btn-danger delete-row" onclick="deleteRisk(${i})">✕</button>`;
+    container.appendChild(div);
+  });
+  document.getElementById('highRiskCount').textContent = high;
+  document.getElementById('medRiskCount').textContent = med;
+}
+
+function addRisk() {
+  const type = document.getElementById('riskType').value.trim();
+  if (!type) return;
+  state.risks.push({
+    type, owner: document.getElementById('riskOwner').value,
+    severity: document.getElementById('riskSeverity').value,
+    trigger: document.getElementById('riskTrigger').value,
+    expiry: document.getElementById('riskExpiry').value,
+    lead: document.getElementById('riskLead').value
+  });
+  ['riskType','riskOwner','riskTrigger','riskExpiry','riskLead'].forEach(id => document.getElementById(id).value = '');
+  closeModal('addRiskModal');
+  renderRisks();
+}
+
+function deleteRisk(i) { state.risks.splice(i, 1); renderRisks(); }
+
+// ========== SPECS ==========
+function renderSpecs() {
+  const container = document.getElementById('specsList');
+  container.innerHTML = '';
+  state.specs.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'spec-card';
+    const statusColor = { Operational: 'teal', Verified: 'teal', Active: 'brass', Pending: 'grey', Expired: 'red' }[s.status] || 'grey';
+    div.innerHTML = `
+      <div class="spec-status">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:var(--cream);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid var(--border);">${s.icon || '⚙'}</div>
+          <div>
+            <div class="spec-name">${s.name}</div>
+            <div class="spec-type">${s.type}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="badge badge-${statusColor}">${s.status}</span>
+          <button class="btn btn-danger" onclick="deleteSpec(${i})">✕</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-mid);margin:8px 0;">${s.desc}</div>
+      ${s.note ? `<div class="notice warn" style="margin-bottom:8px;">ⓘ ${s.note}</div>` : ''}
+      <div class="spec-meta">
+        <div class="spec-meta-item"><label>Expiry Date</label><span>${s.expiry ? new Date(s.expiry).toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'}) : 'N/A'}</span></div>
+        <div class="spec-meta-item"><label>Maintenance</label><span>${s.maint || 'N/A'}</span></div>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function addSpec() {
+  const name = document.getElementById('specName').value.trim();
+  if (!name) return;
+  state.specs.push({
+    name, type: document.getElementById('specType').value,
+    desc: document.getElementById('specDesc').value,
+    expiry: document.getElementById('specExpiry').value,
+    maint: document.getElementById('specMaint').value,
+    status: document.getElementById('specStatus').value,
+    icon: document.getElementById('specIcon').value || '⚙'
+  });
+  ['specName','specType','specDesc','specExpiry','specMaint','specIcon'].forEach(id => document.getElementById(id).value = '');
+  closeModal('addSpecModal');
+  renderSpecs();
+}
+
+function deleteSpec(i) { state.specs.splice(i, 1); renderSpecs(); }
+
+// ========== BLITZ ==========
+function renderBlitz() {
+  const tbody = document.getElementById('blitzBody');
+  tbody.innerHTML = '';
+  let spent = 0;
+  state.blitzTasks.forEach((t, i) => {
+    const cost = parseFloat(t.cost) || 0;
+    if (t.status === 'Complete') spent += cost;
+    const statusColor = { Pending:'grey', 'In Progress':'brass', Complete:'teal' }[t.status] || 'grey';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="font-weight:600;">${t.week}</td>
+      <td>${t.task}</td>
+      <td><span class="badge badge-${t.priority == 1 ? 'red' : t.priority == 2 ? 'brass' : 'teal'}">${t.priority == 1 ? 'High' : t.priority == 2 ? 'Med' : 'Low'}</span></td>
+      <td>$${cost.toLocaleString()}</td>
+      <td>
+        <select onchange="updateBlitzStatus(${i}, this.value)" style="font-size:11px;padding:3px 6px;border-radius:4px;">
+          ${['Pending','In Progress','Complete'].map(s => `<option ${t.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td><button class="btn btn-danger delete-row" onclick="deleteBlitzTask(${i})">✕</button></td>`;
+    tbody.appendChild(row);
+  });
+
+  const cap = parseFloat((document.getElementById('blitzHardCap').value || '0').replace(/[^0-9.]/g,'')) || 0;
+  const balance = cap - spent;
+  document.getElementById('blitzSpent').textContent = '$' + spent.toLocaleString();
+  document.getElementById('blitzBalance').textContent = '$' + Math.max(balance,0).toLocaleString();
+  document.getElementById('blitzProgress').style.width = cap > 0 ? Math.min(spent/cap*100,100)+'%' : '0%';
+}
+
+function addBlitzTask() {
+  const task = document.getElementById('blitzTask').value.trim();
+  if (!task) return;
+  state.blitzTasks.push({
+    week: document.getElementById('blitzWeek').value,
+    task, priority: document.getElementById('blitzPriority').value,
+    cost: document.getElementById('blitzCost').value,
+    status: document.getElementById('blitzStatus').value
+  });
+  ['blitzWeek','blitzTask','blitzCost'].forEach(id => document.getElementById(id).value = '');
+  closeModal('addBlitzModal');
+  renderBlitz();
+}
+
+function deleteBlitzTask(i) { state.blitzTasks.splice(i, 1); renderBlitz(); }
+
+function updateBlitzStatus(i, val) { state.blitzTasks[i].status = val; renderBlitz(); }
+
+function sortBlitzByPriority() {
+  state.blitzTasks.sort((a, b) => a.priority - b.priority);
+  renderBlitz();
+}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', () => {
+  setDate();
+  updateCountdowns();
+  renderTransactions();
+  renderBudget();
+  renderRisks();
+  renderSpecs();
+  renderBlitz();
+
+  // Blitz hard cap live update
+  document.getElementById('blitzHardCap').addEventListener('input', renderBlitz);
+});
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>
