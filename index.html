@@ -972,26 +972,43 @@
         <div class="briefing-sub">Item-level stress test — every line item confirmed and costed</div>
       </div>
 
-      <div class="grid-3" style="margin-bottom:16px;">
+      <div class="grid-4" style="margin-bottom:16px;">
         <div class="stat-card">
           <div class="stat-label">Items Confirmed</div>
           <div class="stat-value teal" id="budgetCheckedCount">0 / 0</div>
           <div class="progress-bar"><div class="progress-fill" id="budgetProgress" style="width:0%"></div></div>
         </div>
         <div class="stat-card brass">
-          <div class="stat-label">Total Budgeted (NZD)</div>
+          <div class="stat-label">Phase 1 Total (NZD)</div>
           <div class="stat-value brass" id="budgetGrandTotal">$0</div>
         </div>
         <div class="stat-card red">
           <div class="stat-label">Uncosted Items</div>
           <div class="stat-value red" id="budgetUncosted">0</div>
-          <div class="stat-note">Items with no price entered</div>
+          <div class="stat-note">Visible items only</div>
+        </div>
+        <div class="stat-card charcoal">
+          <div class="stat-label">V8 Deferred Total</div>
+          <div class="stat-value" id="budgetV8Total" style="color:var(--charcoal)">$0</div>
+          <div class="stat-note">Phase 2 decision gate</div>
         </div>
       </div>
 
-      <div id="budgetCategories">
-        <!-- populated by JS -->
+      <!-- Phase filter buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <span style="font-size:11px;color:var(--text-light);letter-spacing:0.1em;text-transform:uppercase;">Show:</span>
+        <button class="btn btn-sm phase-filter-btn active" data-phase="all" onclick="setBudgetPhaseFilter('all', this)">All Phases</button>
+        <button class="btn btn-sm phase-filter-btn" data-phase="phase0" onclick="setBudgetPhaseFilter('phase0', this)" style="border-color:var(--whalers-brass);color:var(--whalers-brass);">Phase 0</button>
+        <button class="btn btn-sm phase-filter-btn" data-phase="phase1" onclick="setBudgetPhaseFilter('phase1', this)" style="border-color:var(--sounds-teal);color:var(--sounds-teal);">Phase 1 Core</button>
+        <button class="btn btn-sm phase-filter-btn" data-phase="v8" onclick="setBudgetPhaseFilter('v8', this)" style="border-color:var(--kura-red);color:var(--kura-red);">V8 Commercial</button>
+        <div style="margin-left:auto;">
+          <button class="btn btn-secondary btn-sm" onclick="expandAllPhases()">Expand All</button>
+          <button class="btn btn-secondary btn-sm" onclick="collapseAllPhases()" style="margin-left:4px;">Collapse All</button>
+        </div>
       </div>
+
+      <!-- Phase blocks -->
+      <div id="budgetPhaseBlocks"><!-- populated by JS --></div>
     </div>
 
     <!-- RISK MATRIX -->
@@ -1071,12 +1088,13 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Spent to Date</div>
+          <div class="stat-label">Tasks Committed</div>
           <div class="stat-value teal" id="blitzSpent">$0</div>
           <div class="progress-bar"><div class="progress-fill red" id="blitzProgress" style="width:0%"></div></div>
+          <div class="stat-note" id="blitzCompletedNote">$0 completed</div>
         </div>
         <div class="stat-card brass">
-          <div class="stat-label">Active Balance</div>
+          <div class="stat-label">Remaining Budget</div>
           <div class="stat-value brass" id="blitzBalance">$0</div>
         </div>
       </div>
@@ -1242,6 +1260,13 @@
     <div><label>Item Name</label><input type="text" id="newItemLabel" placeholder="e.g. Adult PFDs (commercial rated)" /></div>
     <div style="margin-top:10px;"><label>Note / Compliance Info</label><input type="text" id="newItemNote" placeholder="Optional note..." /></div>
     <div style="margin-top:10px;"><label>Estimated Cost (NZD)</label><input type="number" id="newItemPrice" placeholder="0" /></div>
+    <div style="margin-top:10px;"><label>Phase</label>
+      <select id="newItemPhase">
+        <option value="phase0">Phase 0 — Pre-Purchase</option>
+        <option value="phase1" selected>Phase 1 — Core Infrastructure</option>
+        <option value="v8">V8 Commercial — Deferred</option>
+      </select>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeModal('addBudgetItemModal')">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="addBudgetItem()">Add Item</button>
@@ -1266,157 +1291,163 @@ let state = {
 };
 
 // ========== BUDGET CATEGORIES ==========
+const PHASES = [
+  { id: 'phase0', label: 'Phase 0 — Pre-Purchase & Committed', color: '#C9A84C', desc: 'Already committed or required before build begins', defaultOpen: true },
+  { id: 'phase1', label: 'Phase 1 — Core Infrastructure', color: '#1a6b5a', desc: 'Essential build regardless of tourism path — dwelling, off-grid, boat, site', defaultOpen: true },
+  { id: 'v8', label: 'V8 Commercial — Phase 2 Decision Gate', color: '#C0392B', desc: 'Defer until Month 18 review. Do not cost or procure until Phase 2 confirmed.', defaultOpen: false }
+];
+
 const budgetCategories = [
   { id: "water-safety", label: "Water Safety & Maritime", icon: "⚓", critical: true, items: [
-    { id: "pfd-adult", label: "Adult PFDs (Type 1 or 2 — commercial rated)", note: "Maritime NZ requires commercial-rated PFDs for hosted water activity" },
-    { id: "pfd-child", label: "Child PFDs (various sizes)", note: "Must cover full guest age range" },
-    { id: "pfd-storage", label: "PFD storage & drying rack", note: "Weatherproof, accessible at jetty" },
-    { id: "throwline", label: "Throw lines / rescue ropes", note: "Minimum 2 at jetty" },
-    { id: "lifebuoy", label: "Lifebuoy ring(s) with line", note: "Fixed at jetty" },
-    { id: "flares", label: "Flare kit (current dated)", note: "Check Maritime NZ requirements for vessel type" },
-    { id: "epirb", label: "EPIRB or PLB (registered)", note: "Essential for remote water location" },
-    { id: "vhf", label: "VHF marine radio", note: "Channel 16 monitoring; check coverage in Tory Channel" },
-    { id: "anchor", label: "Anchor & chain for tender/vessel", note: "" },
-    { id: "nav-lights", label: "Navigation lights for vessel(s)", note: "" },
-    { id: "bilge-pump", label: "Bilge pump(s)", note: "" },
-    { id: "first-aid-marine", label: "Marine-specific first aid kit", note: "Separate from land first aid" },
-    { id: "fire-ext-vessel", label: "Fire extinguisher(s) for vessel", note: "" },
-    { id: "wetsuit", label: "Wetsuits / drysuits for emergency use", note: "Tory Channel water is cold" },
-    { id: "jetty-lighting", label: "Jetty safety lighting", note: "Night access for guests" },
-    { id: "jetty-cleats", label: "Jetty cleats, fenders, mooring lines", note: "" },
-    { id: "tide-chart", label: "Tidal chart / signage at jetty", note: "" },
+    { id: "pfd-adult", label: "Adult PFDs (Type 1 or 2 — commercial rated)", note: "Commercial-grade for hosted activity", phase: "v8" },
+    { id: "pfd-child", label: "Child PFDs (various sizes)", note: "Commercial scale requirement", phase: "v8" },
+    { id: "pfd-storage", label: "PFD storage & drying rack", note: "Useful any boat activity", phase: "phase1" },
+    { id: "throwline", label: "Throw lines / rescue ropes", note: "Essential safety on small boat", phase: "phase1" },
+    { id: "lifebuoy", label: "Lifebuoy ring(s) with line", note: "Essential safety — fixed at jetty", phase: "phase1" },
+    { id: "flares", label: "Flare kit (current dated)", note: "Critical for remote Tory Channel location", phase: "phase1" },
+    { id: "epirb", label: "EPIRB or PLB (registered)", note: "Non-negotiable for remote water location", phase: "phase1" },
+    { id: "vhf", label: "VHF marine radio", note: "Essential comms, Tory Channel", phase: "phase1" },
+    { id: "anchor", label: "Anchor & chain for tender/vessel", note: "Required for boat", phase: "phase1" },
+    { id: "nav-lights", label: "Navigation lights for vessel(s)", note: "Required for any vessel operations", phase: "phase1" },
+    { id: "bilge-pump", label: "Bilge pump(s)", note: "Boat maintenance", phase: "phase1" },
+    { id: "first-aid-marine", label: "Marine-specific first aid kit", note: "Good practice", phase: "phase1" },
+    { id: "fire-ext-vessel", label: "Fire extinguisher(s) for vessel", note: "Safety essential", phase: "phase1" },
+    { id: "wetsuit", label: "Wetsuits / drysuits for emergency use", note: "Tory Channel is cold — critical", phase: "phase1" },
+    { id: "jetty-lighting", label: "Jetty safety lighting", note: "Night access", phase: "phase1" },
+    { id: "jetty-cleats", label: "Jetty cleats, fenders, mooring lines", note: "Basic jetty operations", phase: "phase1" },
+    { id: "tide-chart", label: "Tidal chart / signage at jetty", note: "Useful reference", phase: "phase1" },
   ]},
   { id: "fire-safety", label: "Fire Safety & Emergency", icon: "🔥", critical: true, items: [
-    { id: "fire-ext-site", label: "Fire extinguishers — hospitality zone", note: "Type, qty, location plan required" },
-    { id: "fire-ext-accomm", label: "Fire extinguishers — each accommodation unit", note: "" },
-    { id: "smoke-alarms", label: "Smoke alarms — all accommodation units", note: "NZ Building Code compliant, interconnected" },
-    { id: "co-alarms", label: "CO alarms (if gas appliances)", note: "" },
-    { id: "fire-blanket", label: "Fire blankets — kitchen/cooking areas", note: "" },
-    { id: "evacuation-plan", label: "Evacuation plan & signage", note: "Required for hosted accommodation" },
-    { id: "muster-point", label: "Muster point markers", note: "" },
-    { id: "emergency-contacts", label: "Emergency contact board / signage", note: "Include nearest hospital, coastguard, police" },
-    { id: "sat-phone", label: "Satellite phone or Starlink comms backup", note: "Cell coverage in Tory Channel is limited" },
-    { id: "first-aid-land", label: "Comprehensive land first aid kit", note: "Remote location — must be well stocked" },
-    { id: "defibrillator", label: "AED defibrillator", note: "Strongly recommended for remote hosted accommodation" },
-    { id: "first-aid-trained", label: "First aid training (Jason & Caroline)", note: "Budget for course + recertification" },
+    { id: "fire-ext-site", label: "Fire extinguishers — hospitality zone", note: "Commercial requirement for guest accommodation", phase: "v8" },
+    { id: "fire-ext-accomm", label: "Fire extinguishers — each accommodation unit", note: "Commercial requirement", phase: "v8" },
+    { id: "smoke-alarms", label: "Smoke alarms — all accommodation units", note: "NZ Building Code — essential any occupied structure", phase: "phase1" },
+    { id: "co-alarms", label: "CO alarms (if gas appliances)", note: "Building Code requirement if using gas", phase: "phase1" },
+    { id: "fire-blanket", label: "Fire blankets — kitchen/cooking areas", note: "Good practice any kitchen", phase: "phase1" },
+    { id: "evacuation-plan", label: "Evacuation plan & signage", note: "Commercial requirement for guest operations", phase: "v8" },
+    { id: "muster-point", label: "Muster point markers", note: "Commercial requirement", phase: "v8" },
+    { id: "emergency-contacts", label: "Emergency contact board / signage", note: "Good practice, especially remote", phase: "phase1" },
+    { id: "sat-phone", label: "Satellite phone or Starlink comms backup", note: "Critical — limited cell coverage in Tory Channel", phase: "phase1" },
+    { id: "first-aid-land", label: "Comprehensive land first aid kit", note: "Essential, remote location", phase: "phase1" },
+    { id: "defibrillator", label: "AED defibrillator", note: "Commercial best practice — defer to Phase 2", phase: "v8" },
+    { id: "first-aid-trained", label: "First aid training (Jason & Caroline)", note: "Essential for remote location regardless of phase", phase: "phase1" },
   ]},
-  { id: "accommodation", label: "Accommodation & Glamping Structures", icon: "⛺", critical: false, items: [
-    { id: "glamping-tents", label: "Glamping tent structures", note: "Platform-mounted, weatherproof for Marlborough conditions" },
-    { id: "tent-platforms", label: "Tent platforms / decking", note: "Engineering sign-off may be required" },
-    { id: "bedding", label: "Bedding, linen, pillows per unit", note: "Commercial grade, spare sets for turnaround" },
-    { id: "towels", label: "Towels — full sets per unit + spares", note: "" },
-    { id: "furniture-beds", label: "Bed frames per unit", note: "" },
-    { id: "furniture-lounge", label: "Lounge/seating furniture per unit", note: "" },
-    { id: "lighting-accomm", label: "Lighting — each unit (12v/solar)", note: "" },
-    { id: "heating", label: "Heating per unit", note: "Marlborough winters — critical for year-round operation" },
-    { id: "rugs-mats", label: "Rugs, mats, décor per unit", note: "" },
-    { id: "welcome-kit", label: "Welcome kit / guest information folder", note: "" },
-    { id: "safe", label: "In-unit safe or lockbox", note: "" },
-    { id: "blackout", label: "Blackout blinds or curtains", note: "" },
-    { id: "insect-screens", label: "Insect screening", note: "" },
+  { id: "accommodation", label: "Accommodation & Cabin Structures", icon: "⛺", critical: false, items: [
+    { id: "glamping-tents", label: "Cabin structures (primary dwelling + 2–3 guest cabins)", note: "Consented as visitor accommodation from day 1", phase: "phase1" },
+    { id: "tent-platforms", label: "Cabin platforms / decking", note: "Foundation for structures — engineering sign-off required", phase: "phase1" },
+    { id: "bedding", label: "Bedding, linen, pillows per unit", note: "Essential for any guest-ready structure", phase: "phase1" },
+    { id: "towels", label: "Towels — full sets per unit + spares", note: "Essential", phase: "phase1" },
+    { id: "furniture-beds", label: "Bed frames per unit", note: "Essential", phase: "phase1" },
+    { id: "furniture-lounge", label: "Lounge/seating furniture per unit", note: "Essential comfort", phase: "phase1" },
+    { id: "lighting-accomm", label: "Lighting — each unit (12v/solar)", note: "Essential off-grid", phase: "phase1" },
+    { id: "heating", label: "Heating per unit", note: "CRITICAL — Marlborough winters", phase: "phase1" },
+    { id: "rugs-mats", label: "Rugs, mats, décor per unit", note: "Both phases", phase: "phase1" },
+    { id: "welcome-kit", label: "Welcome kit / guest information folder", note: "Phase 1: family guest info. Phase 2: commercial packs", phase: "phase1" },
+    { id: "safe", label: "In-unit safe or lockbox", note: "Valuable storage both phases", phase: "phase1" },
+    { id: "blackout", label: "Blackout blinds or curtains", note: "Both phases", phase: "phase1" },
+    { id: "insect-screens", label: "Insect screening", note: "Essential, remote location", phase: "phase1" },
   ]},
   { id: "bathroom", label: "Bathroom & Guest Amenities", icon: "🚿", critical: false, items: [
-    { id: "bathrooms", label: "Bathroom structures / wet rooms", note: "" },
-    { id: "hot-water", label: "Hot water system(s)", note: "Solar/gas/electric — specify per unit" },
-    { id: "toilets", label: "Toilets — composting or connected", note: "Wastewater consent implications" },
-    { id: "vanities", label: "Vanities, basins, taps", note: "" },
-    { id: "shower-fittings", label: "Shower fittings", note: "" },
-    { id: "toiletries", label: "Guest toiletry kits (ongoing supply)", note: "Budget as operating cost" },
-    { id: "hair-dryer", label: "Hair dryers per unit", note: "" },
-    { id: "waste-bins", label: "Waste bins with liners", note: "" },
+    { id: "bathrooms", label: "Bathroom structures / wet rooms", note: "Essential part of dwelling/cabin build", phase: "phase1" },
+    { id: "hot-water", label: "Hot water system(s)", note: "Essential — solar/gas/electric", phase: "phase1" },
+    { id: "toilets", label: "Toilets — composting or connected", note: "Essential; wastewater consent specific to system", phase: "phase1" },
+    { id: "vanities", label: "Vanities, basins, taps", note: "Essential", phase: "phase1" },
+    { id: "shower-fittings", label: "Shower fittings", note: "Essential", phase: "phase1" },
+    { id: "toiletries", label: "Guest toiletry kits (ongoing supply)", note: "Budget as OpEx", phase: "phase1" },
+    { id: "hair-dryer", label: "Hair dryers per unit", note: "Nice-to-have both phases", phase: "phase1" },
+    { id: "waste-bins", label: "Waste bins with liners", note: "Essential", phase: "phase1" },
   ]},
-  { id: "kitchen", label: "Kitchen, Dining & Guest Catering", icon: "🍽", critical: false, items: [
-    { id: "kitchen-structure", label: "Kitchen / prep area structure", note: "" },
-    { id: "fridge", label: "Refrigeration (commercial grade)", note: "" },
-    { id: "cooking-appliances", label: "Cooking appliances (BBQ, camp stove, oven)", note: "" },
-    { id: "cookware", label: "Cookware, pots, pans", note: "" },
-    { id: "crockery", label: "Crockery, cutlery, glassware", note: "Full sets x guest capacity + spares" },
-    { id: "coffee", label: "Coffee/tea setup", note: "" },
-    { id: "dining-furniture", label: "Dining table(s) and chairs", note: "Indoor + outdoor" },
-    { id: "gas-supply", label: "Gas bottles / supply system", note: "Ongoing supply logistics for remote site" },
-    { id: "water-supply", label: "Potable water system", note: "Tank, filtration, UV treatment" },
-    { id: "water-testing", label: "Water quality testing kit", note: "Rainwater catchment requires testing" },
+  { id: "kitchen", label: "Kitchen, Dining & Catering", icon: "🍽", critical: false, items: [
+    { id: "kitchen-structure", label: "Kitchen / prep area structure", note: "Essential dwelling kitchen", phase: "phase1" },
+    { id: "fridge", label: "Refrigeration (commercial grade)", note: "Phase 1: domestic fridge. Phase 2: commercial upgrade", phase: "v8" },
+    { id: "cooking-appliances", label: "Cooking appliances (BBQ, camp stove, oven)", note: "Essential — domestic spec Phase 1", phase: "phase1" },
+    { id: "cookware", label: "Cookware, pots, pans", note: "Essential", phase: "phase1" },
+    { id: "crockery", label: "Crockery, cutlery, glassware", note: "Essential", phase: "phase1" },
+    { id: "coffee", label: "Coffee/tea setup", note: "Nice-to-have", phase: "phase1" },
+    { id: "dining-furniture", label: "Dining table(s) and chairs", note: "Essential — indoor + outdoor", phase: "phase1" },
+    { id: "gas-supply", label: "Gas bottles / supply system", note: "Essential for cooking/heating", phase: "phase1" },
+    { id: "water-supply", label: "Potable water system", note: "Tank, filtration, UV treatment", phase: "phase1" },
+    { id: "food-registration", label: "Food premises registration", note: "MDC requirement if serving meals commercially", phase: "v8" },
   ]},
   { id: "fishing", label: "Fishing Operations", icon: "🎣", critical: false, items: [
-    { id: "fishing-rods", label: "Fishing rods — guest use", note: "" },
-    { id: "reels", label: "Reels, lines, terminal tackle", note: "" },
-    { id: "lures-bait", label: "Lures, bait supply, hooks (ongoing)", note: "Budget as operating cost" },
-    { id: "rod-storage", label: "Rod rack / storage at jetty", note: "" },
-    { id: "fish-cleaning", label: "Fish cleaning table & water supply", note: "" },
-    { id: "icebox-fish", label: "Chilly bins / ice supply for catch", note: "" },
-    { id: "landing-net", label: "Landing nets", note: "" },
-    { id: "bait-tank", label: "Bait tank / aerator", note: "" },
-    { id: "fishing-license", label: "Fishing licensing / compliance signage", note: "Check NZ Sport Fishing rules for hosted guiding" },
-    { id: "vessel", label: "Fishing vessel / tender", note: "Type, size, capacity — Maritime NZ survey requirements" },
-    { id: "outboard", label: "Outboard motor + spare", note: "" },
-    { id: "fuel-storage", label: "Fuel storage (compliant)", note: "Remote site — adequate reserves" },
+    { id: "fishing-rods", label: "Fishing rods — guest use (commercial)", note: "Commercial guest activity — defer Phase 2", phase: "v8" },
+    { id: "reels", label: "Reels, lines, terminal tackle (commercial)", note: "Commercial guest activity — defer Phase 2", phase: "v8" },
+    { id: "lures-bait", label: "Lures, bait supply, hooks (commercial ongoing)", note: "Commercial activity — defer Phase 2", phase: "v8" },
+    { id: "rod-storage", label: "Rod rack / storage at jetty", note: "Useful for family fishing Phase 1", phase: "phase1" },
+    { id: "fish-cleaning", label: "Fish cleaning table & water supply", note: "Commercial guest activity — defer Phase 2", phase: "v8" },
+    { id: "icebox-fish", label: "Chilly bins / ice supply for commercial catch", note: "Commercial activity — defer Phase 2", phase: "v8" },
+    { id: "landing-net", label: "Landing nets", note: "Useful for family fishing", phase: "phase1" },
+    { id: "bait-tank", label: "Bait tank / aerator", note: "Commercial operation — defer Phase 2", phase: "v8" },
+    { id: "fishing-license", label: "Fishing licensing / compliance signage", note: "Commercial hosted guiding — defer Phase 2", phase: "v8" },
+    { id: "vessel", label: "Fishing vessel / tender (small 5m boat)", note: "Phase 1 essential for site access and family use", phase: "phase1" },
+    { id: "outboard", label: "Outboard motor + spare", note: "Essential for boat", phase: "phase1" },
+    { id: "fuel-storage", label: "Fuel storage (compliant)", note: "Essential for boat operations", phase: "phase1" },
   ]},
   { id: "power", label: "Power, Water & Utilities", icon: "⚡", critical: true, items: [
-    { id: "solar-panels", label: "Solar panels (qty, kW capacity)", note: "" },
-    { id: "battery-storage", label: "Battery storage system", note: "Size for full guest load + safety margin" },
-    { id: "inverter", label: "Inverter / charge controller", note: "" },
-    { id: "generator", label: "Backup generator", note: "Essential for remote site" },
-    { id: "electrical-wiring", label: "Site electrical wiring & switchboards", note: "Licensed electrician required in NZ" },
-    { id: "rainwater-tank", label: "Rainwater tank(s) capacity", note: "" },
-    { id: "pump-system", label: "Pump system & pressure vessel", note: "" },
-    { id: "filtration", label: "Water filtration & UV treatment", note: "" },
-    { id: "wastewater", label: "Wastewater / septic system", note: "Consent-specific requirements" },
-    { id: "internet", label: "Starlink or satellite internet", note: "Guest expectation + operational necessity" },
+    { id: "solar-panels", label: "Solar panels (qty, kW capacity)", note: "Essential off-grid power for dwelling", phase: "phase1" },
+    { id: "battery-storage", label: "Battery storage system", note: "Essential off-grid — size for full load + margin", phase: "phase1" },
+    { id: "inverter", label: "Inverter / charge controller", note: "Essential off-grid", phase: "phase1" },
+    { id: "generator", label: "Backup generator", note: "Essential remote site reliability", phase: "phase1" },
+    { id: "electrical-wiring", label: "Site electrical wiring & switchboards", note: "Licensed electrician required in NZ", phase: "phase1" },
+    { id: "rainwater-tank", label: "Rainwater tank(s) capacity", note: "Essential off-grid water", phase: "phase1" },
+    { id: "pump-system", label: "Pump system & pressure vessel", note: "Essential water system", phase: "phase1" },
+    { id: "filtration", label: "Water filtration & UV treatment", note: "Essential for potable water", phase: "phase1" },
+    { id: "wastewater", label: "Wastewater / septic system", note: "Essential; consent-specific requirements", phase: "phase1" },
+    { id: "internet", label: "Starlink or satellite internet", note: "Operational necessity Phase 1; guest expectation Phase 2", phase: "phase1" },
   ]},
   { id: "vehicles", label: "Vehicles & Site Access", icon: "🚜", critical: false, items: [
-    { id: "utv", label: "Can-Am 6-seat UTV", note: "Guest transport on-site" },
-    { id: "utv-accessories", label: "UTV accessories (roof, doors, lights)", note: "" },
-    { id: "tractor", label: "John Deere 2025R sub-compact tractor", note: "" },
-    { id: "tractor-implements", label: "Tractor implements (bucket, slasher, forks)", note: "" },
-    { id: "quad-existing", label: "Existing quad bike — service & compliance", note: "Already on site" },
-    { id: "track-maintenance", label: "Internal track maintenance (gravel, grading)", note: "Ongoing annual budget" },
-    { id: "jetty-vehicle-access", label: "Vehicle access path to jetty", note: "" },
-    { id: "trailer-boat", label: "Boat trailer", note: "" },
+    { id: "utv", label: "Can-Am 6-seat UTV", note: "Guest transport — commercial operation. Phase 1 family doesn't need this", phase: "v8" },
+    { id: "utv-accessories", label: "UTV accessories (roof, doors, lights)", note: "Commercial operation — defer Phase 2", phase: "v8" },
+    { id: "tractor", label: "John Deere 2025R sub-compact tractor", note: "Site maintenance — useful both phases", phase: "phase1" },
+    { id: "tractor-implements", label: "Tractor implements (bucket, slasher, forks)", note: "Site work both phases", phase: "phase1" },
+    { id: "quad-existing", label: "Existing quad bike — service & compliance", note: "Already on site", phase: "phase1" },
+    { id: "track-maintenance", label: "Internal track maintenance (gravel, grading)", note: "Ongoing both phases", phase: "phase1" },
+    { id: "jetty-vehicle-access", label: "Vehicle access path to jetty", note: "Essential site access", phase: "phase1" },
+    { id: "trailer-boat", label: "Boat trailer", note: "Essential for vessel transport", phase: "phase1" },
   ]},
   { id: "consents", label: "Consents, Compliance & Insurance", icon: "📋", critical: true, items: [
-    { id: "resource-consent", label: "Resource consent application fees", note: "" },
-    { id: "building-consent", label: "Building consent fees", note: "" },
-    { id: "engineering-reports", label: "Engineering reports (geotechnical, structural)", note: "" },
-    { id: "legal-nz", label: "NZ legal fees (Tom Dobbs / Gascoigne Wicks)", note: "" },
-    { id: "accountant", label: "NZ accountant / tax setup", note: "" },
-    { id: "insurance-property", label: "Property insurance", note: "Follow up Abbey at Aon Gallagher Blenheim" },
-    { id: "insurance-public-liability", label: "Public liability insurance (commercial hosted)", note: "Critical — guest-facing operation" },
-    { id: "insurance-marine", label: "Marine insurance (vessel, jetty)", note: "" },
-    { id: "insurance-vehicle", label: "Vehicle insurance (UTV, tractor)", note: "" },
-    { id: "health-safety-plan", label: "Health & Safety plan (WorkSafe NZ compliant)", note: "" },
-    { id: "guest-waiver", label: "Guest liability waiver (legal reviewed)", note: "" },
-    { id: "food-registration", label: "Food premises registration (if serving meals)", note: "MDC requirement" },
-    { id: "maritime-survey", label: "Maritime NZ vessel survey / operator cert", note: "" },
+    { id: "resource-consent", label: "Resource consent application fees", note: "Required before build", phase: "phase0" },
+    { id: "building-consent", label: "Building consent fees", note: "Required before build", phase: "phase0" },
+    { id: "engineering-reports", label: "Engineering reports (geotechnical, structural)", note: "Required before build", phase: "phase0" },
+    { id: "legal-nz", label: "NZ legal fees (Tom Dobbs / Gascoigne Wicks)", note: "Ongoing — forestry right, conditions, conveyancing", phase: "phase0" },
+    { id: "accountant", label: "NZ accountant / tax setup", note: "Company setup and GST registration", phase: "phase0" },
+    { id: "insurance-property", label: "Property insurance", note: "Follow up Abbey at Aon Gallagher Blenheim", phase: "phase1" },
+    { id: "insurance-public-liability", label: "Public liability insurance (commercial hosted)", note: "Required for guest-facing operation", phase: "v8" },
+    { id: "insurance-marine", label: "Marine insurance (vessel, jetty)", note: "Essential once vessel purchased", phase: "phase1" },
+    { id: "insurance-vehicle", label: "Vehicle insurance (UTV, tractor)", note: "Phase 1: tractor/quad. Phase 2: UTV", phase: "phase1" },
+    { id: "health-safety-plan", label: "Health & Safety plan (WorkSafe NZ)", note: "Required for commercial operation", phase: "v8" },
+    { id: "guest-waiver", label: "Guest liability waiver (legal reviewed)", note: "Required for commercial operation", phase: "v8" },
+    { id: "maritime-survey", label: "Maritime NZ vessel survey / operator cert", note: "Required once vessel is commercial-use", phase: "v8" },
+    { id: "maritime-logbook", label: "Maritime NZ sea hours logbook (Jason)", note: "Jason accumulating hours now", phase: "phase1" },
   ]},
   { id: "site-infra", label: "Site Infrastructure & Build", icon: "🏗", critical: false, items: [
-    { id: "foundations", label: "Foundations for structures", note: "" },
-    { id: "access-road", label: "Main access road upgrade / seal", note: "" },
-    { id: "retaining", label: "Retaining walls / earthworks", note: "" },
-    { id: "fencing", label: "Fencing — boundary, safety, animal", note: "" },
-    { id: "landscaping", label: "Landscaping / revegetation", note: "" },
-    { id: "outdoor-lighting", label: "Outdoor/path lighting", note: "" },
-    { id: "waste-management", label: "Waste management system", note: "Remote — barge out logistics" },
-    { id: "shipping-container", label: "Existing shipping container — fit-out", note: "Already on site" },
-    { id: "storage-shed", label: "Equipment storage shed", note: "" },
-    { id: "laundry", label: "Laundry facilities (commercial washer/dryer)", note: "Guest linen turnaround" },
+    { id: "foundations", label: "Foundations for structures", note: "Essential build Phase 1", phase: "phase1" },
+    { id: "access-road", label: "Main access road upgrade / seal", note: "Essential site access", phase: "phase1" },
+    { id: "retaining", label: "Retaining walls / earthworks", note: "Ridge line safety", phase: "phase1" },
+    { id: "fencing", label: "Fencing — boundary, safety", note: "Essential both phases", phase: "phase1" },
+    { id: "landscaping", label: "Landscaping / revegetation", note: "Both phases", phase: "phase1" },
+    { id: "outdoor-lighting", label: "Outdoor/path lighting", note: "Both phases", phase: "phase1" },
+    { id: "waste-management", label: "Waste management system", note: "Remote — barge out logistics", phase: "phase1" },
+    { id: "shipping-container", label: "Existing shipping container — fit-out (boat storage)", note: "Already on site — repair/repurpose cost", phase: "phase1" },
+    { id: "storage-shed", label: "Equipment storage shed", note: "Both phases", phase: "phase1" },
+    { id: "laundry", label: "Laundry facilities (commercial washer/dryer)", note: "Commercial linen turnaround — defer Phase 2", phase: "v8" },
   ]},
   { id: "brand", label: "Brand, Marketing & Guest Experience", icon: "🎨", critical: false, items: [
-    { id: "website", label: "TKAU website (build + hosting)", note: "" },
-    { id: "booking-system", label: "Online booking system / channel manager", note: "" },
-    { id: "photography", label: "Professional photography (launch)", note: "" },
-    { id: "merchandise", label: "Branded merchandise", note: "" },
-    { id: "signage-brand", label: "Branded signage — entry, site, jetty", note: "" },
-    { id: "welcome-gifts", label: "Guest welcome gifts / packs", note: "" },
-    { id: "uniforms", label: "Staff/host uniforms", note: "" },
-    { id: "guest-experiences", label: "Additional experience props (kayaks, paddleboards)", note: "" },
+    { id: "website", label: "TKAU website (build + hosting)", note: "Defer until Phase 2 commercial launch", phase: "v8" },
+    { id: "booking-system", label: "Online booking system / channel manager", note: "Defer Phase 2", phase: "v8" },
+    { id: "photography", label: "Professional photography (launch)", note: "Defer Phase 2", phase: "v8" },
+    { id: "merchandise", label: "Branded merchandise", note: "Archive existing order until Phase 2", phase: "v8" },
+    { id: "signage-brand", label: "Branded signage — entry, site, jetty", note: "Defer Phase 2", phase: "v8" },
+    { id: "welcome-gifts", label: "Guest welcome gifts / packs", note: "Defer Phase 2", phase: "v8" },
+    { id: "uniforms", label: "Staff/host uniforms", note: "Defer Phase 2", phase: "v8" },
+    { id: "guest-experiences", label: "Additional experience props (kayaks, paddleboards)", note: "Defer Phase 2", phase: "v8" },
   ]},
   { id: "contingency", label: "Contingency & Holding Costs", icon: "💰", critical: true, items: [
-    { id: "contingency-build", label: "Build contingency (min 15–20% of hard costs)", note: "Remote site access inflates all costs" },
-    { id: "holding-costs", label: "Holding costs (rates, insurance, loan) pre-revenue", note: "" },
-    { id: "ferry-barge", label: "Barge / water taxi costs during build phase", note: "All materials arrive by water" },
-    { id: "accommodation-build", label: "Jason & Caroline accommodation during build phase", note: "" },
-    { id: "travel-nz", label: "NZ travel costs (flights, ferry, car hire)", note: "" },
-    { id: "revenue-lag", label: "Revenue lag buffer (6–12 months operating costs)", note: "" },
+    { id: "contingency-build", label: "Build contingency (15–20% of hard costs) ~$120–180k", note: "Remote site access inflates all costs", phase: "phase1" },
+    { id: "holding-costs", label: "Holding costs (rates, insurance, loan) pre-revenue", note: "Budget 12–18 months", phase: "phase1" },
+    { id: "ferry-barge", label: "Barge / water taxi costs during build ~$50–100k", note: "All materials arrive by water", phase: "phase1" },
+    { id: "accommodation-build", label: "Jason & Caroline accommodation during build phase", note: "", phase: "phase1" },
+    { id: "travel-nz", label: "NZ travel costs (flights, ferry, car hire) ~$2–5k/trip", note: "", phase: "phase1" },
+    { id: "revenue-lag", label: "Revenue lag buffer (6–12 months operating costs)", note: "Time from open to full occupancy", phase: "phase1" },
   ]}
 ];
 
@@ -1547,6 +1578,31 @@ function renderAllocationBars() {
 }
 
 // ========== BUDGET ==========
+let budgetPhaseFilter = 'all';
+
+function setBudgetPhaseFilter(phase, btn) {
+  budgetPhaseFilter = phase;
+  document.querySelectorAll('.phase-filter-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+  if (btn) { btn.classList.add('active'); }
+  renderBudget();
+}
+
+function expandAllPhases() {
+  PHASES.forEach(p => {
+    const el = document.getElementById('phaseItems-' + p.id);
+    const arr = document.getElementById('phaseArrow-' + p.id);
+    if (el) { el.style.display = 'block'; if (arr) arr.textContent = '▲'; }
+  });
+}
+
+function collapseAllPhases() {
+  PHASES.forEach(p => {
+    const el = document.getElementById('phaseItems-' + p.id);
+    const arr = document.getElementById('phaseArrow-' + p.id);
+    if (el) { el.style.display = 'none'; if (arr) arr.textContent = '▼'; }
+  });
+}
+
 function getBudgetTotal() {
   let total = 0;
   budgetCategories.forEach(cat => {
@@ -1559,102 +1615,152 @@ function getBudgetTotal() {
 }
 
 function renderBudget() {
-  const container = document.getElementById('budgetCategories');
+  const container = document.getElementById('budgetPhaseBlocks');
+  if (!container) return;
   container.innerHTML = '';
-  let totalChecked = 0, totalItems = 0, totalPrice = 0, uncosted = 0;
 
+  let totalChecked = 0, totalVisible = 0, totalPrice = 0, v8Total = 0, uncosted = 0;
+
+  // Count totals across all items
   budgetCategories.forEach(cat => {
-    totalItems += cat.items.length;
-    const catChecked = cat.items.filter(i => state.budgetChecked[i.id]).length;
-    totalChecked += catChecked;
-    const catTotal = cat.items.reduce((s, i) => s + (parseFloat(state.budgetPrices[i.id]) || 0), 0);
-    totalPrice += catTotal;
-    uncosted += cat.items.filter(i => !(parseFloat(state.budgetPrices[i.id]) > 0)).length;
-
-    const div = document.createElement('div');
-    div.className = 'checklist-category' + (cat.critical ? ' critical' : '');
-    div.id = 'cat-' + cat.id;
-
-    const isOpen = cat.critical;
-
-    div.innerHTML = `
-      <div class="cat-header" onclick="toggleCat('${cat.id}')">
-        <span style="font-size:16px;">${cat.icon}</span>
-        <div class="cat-title">${cat.label} ${cat.critical ? '<span style="font-size:9px;color:var(--kura-red);border:1px solid var(--kura-red);padding:1px 5px;border-radius:2px;letter-spacing:0.1em;text-transform:uppercase;">Critical</span>' : ''}</div>
-        <div class="cat-stats">
-          <div>${catChecked}/${cat.items.length}</div>
-          ${catTotal > 0 ? `<div class="cat-total">$${catTotal.toLocaleString()}</div>` : ''}
-        </div>
-        <span style="color:var(--text-light);font-size:11px;margin-left:8px;" id="catArrow-${cat.id}">${isOpen ? '▲' : '▼'}</span>
-      </div>
-      <div id="catItems-${cat.id}" style="display:${isOpen ? 'block' : 'none'}">
-        ${cat.items.map(item => `
-          <div class="checklist-item ${state.budgetChecked[item.id] ? 'checked' : ''}" id="item-${item.id}">
-            <div class="check-box ${state.budgetChecked[item.id] ? 'checked' : ''}" onclick="toggleCheck('${item.id}', '${cat.id}')">
-              ${state.budgetChecked[item.id] ? '<span style="color:white;font-size:11px;">✓</span>' : ''}
-            </div>
-            <div style="flex:1;cursor:pointer;" onclick="toggleCheck('${item.id}', '${cat.id}')">
-              <div class="item-label ${state.budgetChecked[item.id] ? 'checked' : ''}">${item.label}</div>
-              ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
-            </div>
-            <div class="price-input-wrap">
-              <span>$</span>
-              <input type="number" class="price-input" placeholder="0" value="${state.budgetPrices[item.id] || ''}" oninput="setPrice('${item.id}', this.value)" />
-            </div>
-          </div>`).join('')}
-        <div class="add-item-row" onclick="openAddBudgetItem('${cat.id}')">+ Add Item to ${cat.label}</div>
-      </div>`;
-    container.appendChild(div);
+    cat.items.forEach(item => {
+      const price = parseFloat(state.budgetPrices[item.id]) || 0;
+      if (item.phase === 'v8') { v8Total += price; }
+      else { totalPrice += price; }
+      if (state.budgetChecked[item.id]) totalChecked++;
+      if (item.phase !== 'v8') totalVisible++;
+      if (!(parseFloat(state.budgetPrices[item.id]) > 0) && item.phase !== 'v8') uncosted++;
+    });
   });
 
-  document.getElementById('budgetCheckedCount').textContent = `${totalChecked} / ${totalItems}`;
+  // Update summary stats
+  document.getElementById('budgetCheckedCount').textContent = totalChecked + ' / ' + (totalVisible);
   document.getElementById('budgetGrandTotal').textContent = '$' + totalPrice.toLocaleString();
   document.getElementById('budgetUncosted').textContent = uncosted;
-  document.getElementById('budgetProgress').style.width = (totalChecked / totalItems * 100) + '%';
+  document.getElementById('budgetV8Total').textContent = '$' + v8Total.toLocaleString();
+  document.getElementById('budgetProgress').style.width = totalVisible > 0 ? (totalChecked / totalVisible * 100) + '%' : '0%';
   document.getElementById('dashBudgetTotal').textContent = '$' + totalPrice.toLocaleString();
+
+  // Render phase blocks
+  PHASES.forEach(phase => {
+    if (budgetPhaseFilter !== 'all' && budgetPhaseFilter !== phase.id) return;
+
+    // Gather all items for this phase across all categories
+    const phaseItems = [];
+    budgetCategories.forEach(cat => {
+      cat.items.filter(i => i.phase === phase.id).forEach(item => {
+        phaseItems.push({ item, catLabel: cat.label, catIcon: cat.icon });
+      });
+    });
+    if (phaseItems.length === 0) return;
+
+    const phaseChecked = phaseItems.filter(({item}) => state.budgetChecked[item.id]).length;
+    const phaseTotal = phaseItems.reduce((s, {item}) => s + (parseFloat(state.budgetPrices[item.id]) || 0), 0);
+    const isOpen = phase.defaultOpen || budgetPhaseFilter === phase.id;
+
+    const phaseDiv = document.createElement('div');
+    phaseDiv.style.cssText = 'margin-bottom:20px;';
+    phaseDiv.innerHTML = `
+      <div onclick="togglePhaseBlock('${phase.id}')" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--charcoal-dark);border-radius:8px 8px ${isOpen ? '0 0' : '8px 8px'};cursor:pointer;border-left:4px solid ${phase.color};">
+        <div style="flex:1;">
+          <div style="font-family:'Playfair Display',serif;font-size:15px;color:${phase.color};margin-bottom:2px;">${phase.label}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);">${phase.desc}</div>
+        </div>
+        <div style="text-align:right;min-width:80px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);">${phaseChecked}/${phaseItems.length}</div>
+          ${phaseTotal > 0 ? `<div style="font-size:13px;font-weight:600;color:${phase.color};">$${phaseTotal.toLocaleString()}</div>` : ''}
+        </div>
+        <span style="color:rgba(255,255,255,0.4);font-size:12px;" id="phaseArrow-${phase.id}">${isOpen ? '▲' : '▼'}</span>
+      </div>
+      <div id="phaseItems-${phase.id}" style="display:${isOpen ? 'block' : 'none'};border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
+        ${renderPhaseItems(phaseItems, phase)}
+        <div class="add-item-row" onclick="openAddBudgetItem('${phase.id}')">+ Add Item to ${phase.label.split('—')[0].trim()}</div>
+      </div>`;
+    container.appendChild(phaseDiv);
+  });
 }
 
-function toggleCat(id) {
-  const items = document.getElementById('catItems-' + id);
-  const arrow = document.getElementById('catArrow-' + id);
-  const open = items.style.display !== 'none';
-  items.style.display = open ? 'none' : 'block';
-  arrow.textContent = open ? '▼' : '▲';
+function renderPhaseItems(phaseItems, phase) {
+  // Group by category
+  const byCat = {};
+  phaseItems.forEach(({item, catLabel, catIcon}) => {
+    if (!byCat[catLabel]) byCat[catLabel] = { icon: catIcon, items: [] };
+    byCat[catLabel].items.push(item);
+  });
+
+  let html = '';
+  Object.entries(byCat).forEach(([catLabel, {icon, items}]) => {
+    html += `<div style="background:var(--cream);padding:8px 16px;font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);border-bottom:1px solid var(--border);">${icon} ${catLabel}</div>`;
+    items.forEach(item => {
+      const checked = state.budgetChecked[item.id];
+      const price = state.budgetPrices[item.id] || '';
+      html += `
+        <div class="checklist-item ${checked ? 'checked' : ''}" id="item-${item.id}">
+          <div class="check-box ${checked ? 'checked' : ''}" onclick="toggleCheck('${item.id}')">
+            ${checked ? '<span style="color:white;font-size:11px;">✓</span>' : ''}
+          </div>
+          <div style="flex:1;cursor:pointer;" onclick="toggleCheck('${item.id}')">
+            <div class="item-label ${checked ? 'checked' : ''}">${item.label}</div>
+            ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+          </div>
+          <div class="price-input-wrap">
+            <span>$</span>
+            <input type="number" class="price-input" placeholder="0" value="${price}"
+              oninput="setPrice('${item.id}', this.value)" />
+          </div>
+        </div>`;
+    });
+  });
+  return html;
 }
 
-function toggleCheck(itemId, catId) {
+function togglePhaseBlock(id) {
+  const el = document.getElementById('phaseItems-' + id);
+  const arr = document.getElementById('phaseArrow-' + id);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (arr) arr.textContent = open ? '▼' : '▲';
+}
+
+function toggleCheck(itemId) {
   state.budgetChecked[itemId] = !state.budgetChecked[itemId];
   renderBudget();
 }
 
 function setPrice(itemId, val) {
   state.budgetPrices[itemId] = val;
-  // update totals without full re-render
-  const totalPrice = getBudgetTotal();
+  const totalPrice = budgetCategories.reduce((s, cat) =>
+    s + cat.items.filter(i => i.phase !== 'v8').reduce((cs, i) => cs + (parseFloat(state.budgetPrices[i.id]) || 0), 0), 0);
+  const v8Total = budgetCategories.reduce((s, cat) =>
+    s + cat.items.filter(i => i.phase === 'v8').reduce((cs, i) => cs + (parseFloat(state.budgetPrices[i.id]) || 0), 0), 0);
   document.getElementById('budgetGrandTotal').textContent = '$' + totalPrice.toLocaleString();
+  document.getElementById('budgetV8Total').textContent = '$' + v8Total.toLocaleString();
   document.getElementById('dashBudgetTotal').textContent = '$' + totalPrice.toLocaleString();
-  const uncosted = budgetCategories.reduce((s, cat) => s + cat.items.filter(i => !(parseFloat(state.budgetPrices[i.id]) > 0)).length, 0);
+  const uncosted = budgetCategories.reduce((s, cat) =>
+    s + cat.items.filter(i => i.phase !== 'v8' && !(parseFloat(state.budgetPrices[i.id]) > 0)).length, 0);
   document.getElementById('budgetUncosted').textContent = uncosted;
 }
 
-function openAddBudgetItem(catId) {
-  state.addItemTargetCat = catId;
-  const cat = budgetCategories.find(c => c.id === catId);
-  document.getElementById('addItemCategoryName').textContent = cat ? cat.label : catId;
+function openAddBudgetItem(phaseOrCatId) {
+  state.addItemTargetCat = phaseOrCatId;
+  const phase = PHASES.find(p => p.id === phaseOrCatId);
+  document.getElementById('addItemCategoryName').textContent = phase ? phase.label : phaseOrCatId;
   document.getElementById('newItemLabel').value = '';
   document.getElementById('newItemNote').value = '';
   document.getElementById('newItemPrice').value = '';
+  // Show phase selector in modal
   openModal('addBudgetItemModal');
 }
 
 function addBudgetItem() {
   const label = document.getElementById('newItemLabel').value.trim();
   if (!label) return;
-  const catId = state.addItemTargetCat;
-  const cat = budgetCategories.find(c => c.id === catId);
-  if (!cat) return;
-  const id = catId + '-custom-' + Date.now();
-  cat.items.push({ id, label, note: document.getElementById('newItemNote').value });
+  const phaseEl = document.getElementById('newItemPhase');
+  const phaseId = phaseEl ? phaseEl.value : (state.addItemTargetCat || 'phase1');
+  const id = 'custom-' + Date.now();
+  let targetCat = budgetCategories.find(c => c.id === 'contingency') || budgetCategories[0];
+  targetCat.items.push({ id, label, note: document.getElementById('newItemNote').value, phase: phaseId });
   const price = document.getElementById('newItemPrice').value;
   if (price) state.budgetPrices[id] = price;
   closeModal('addBudgetItemModal');
@@ -1757,11 +1863,12 @@ function deleteSpec(i) { state.specs.splice(i, 1); renderSpecs(); }
 function renderBlitz() {
   const tbody = document.getElementById('blitzBody');
   tbody.innerHTML = '';
-  let spent = 0;
+  let committed = 0;
+  let completed = 0;
   state.blitzTasks.forEach((t, i) => {
     const cost = parseFloat(t.cost) || 0;
-    if (t.status === 'Complete') spent += cost;
-    const statusColor = { Pending:'grey', 'In Progress':'brass', Complete:'teal' }[t.status] || 'grey';
+    committed += cost;
+    if (t.status === 'Complete') completed += cost;
     const row = document.createElement('tr');
     row.innerHTML = `
       <td style="font-weight:600;">${t.week}</td>
@@ -1773,15 +1880,19 @@ function renderBlitz() {
           ${['Pending','In Progress','Complete'].map(s => `<option ${t.status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
-      <td><button class="btn btn-danger delete-row" onclick="deleteBlitzTask(${i})">✕</button></td>`;
+      <td><button class="btn btn-danger delete-row" onclick="deleteBlitzTask(${i})">x</button></td>`;
     tbody.appendChild(row);
   });
 
   const cap = parseFloat((document.getElementById('blitzHardCap').value || '0').replace(/[^0-9.]/g,'')) || 0;
-  const balance = cap - spent;
-  document.getElementById('blitzSpent').textContent = '$' + spent.toLocaleString();
-  document.getElementById('blitzBalance').textContent = '$' + Math.max(balance,0).toLocaleString();
-  document.getElementById('blitzProgress').style.width = cap > 0 ? Math.min(spent/cap*100,100)+'%' : '0%';
+  const balance = cap - committed;
+  const balEl = document.getElementById('blitzBalance');
+  document.getElementById('blitzSpent').textContent = '$' + committed.toLocaleString();
+  const noteEl = document.getElementById('blitzCompletedNote');
+  if (noteEl) noteEl.textContent = '$' + completed.toLocaleString() + ' completed';
+  balEl.textContent = '$' + Math.max(balance, 0).toLocaleString();
+  balEl.style.color = balance < 0 ? 'var(--kura-red)' : 'var(--whalers-brass)';
+  document.getElementById('blitzProgress').style.width = cap > 0 ? Math.min(committed/cap*100,100)+'%' : '0%';
 }
 
 function addBlitzTask() {
